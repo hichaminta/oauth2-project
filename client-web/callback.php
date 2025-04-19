@@ -1,35 +1,47 @@
 <?php
+// callback.php - Gestion du code d'autorisation et récupération du jeton d'accès
+
+// Inclure la configuration
 include 'config.php';
 
-// Récupérer le code d'autorisation depuis l'URL
-$code = $_GET['code'];  // Code d'autorisation
+// Vérifier si le code d'autorisation est dans l'URL
+if (!isset($_GET['code'])) {
+    die('Code d\'autorisation manquant.');
+}
 
-// Configuration client
-$client_id = CLIENT_ID;
-$client_secret = CLIENT_SECRET;
-$redirect_uri = REDIRECT_URI;
+$code = $_GET['code'];  // Récupérer le code d'autorisation
 
-// Préparer la requête pour échanger le code d'autorisation contre un jeton
+// Préparer la requête pour échanger le code contre un jeton d'accès
 $response = file_get_contents(TOKEN_URL, false, stream_context_create([
     'http' => [
         'method' => 'POST',
         'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
         'content' => http_build_query([
-            'CLIENT_ID' => $client_id,
-            'client_secret' => $client_secret,
+            'client_id' => CLIENT_ID,
+            'client_secret' => CLIENT_SECRET,
             'code' => $code,
-            'redirect_uri' => $redirect_uri
+            'redirect_uri' => REDIRECT_URI,
+            'grant_type' => 'authorization_code'  // Type de flux d'autorisation
         ])
     ]
 ]));
 
-// Décoder la réponse JSON pour obtenir le jeton d'accès
+// Décoder la réponse JSON
 $token_data = json_decode($response, true);
 
-// Récupérer le jeton d'accès
-$access_token = $token_data['access_token'];
+// Vérifier si le jeton d'accès est dans la réponse
+if (isset($token_data['access_token'])) {
+    $access_token = $token_data['access_token'];
 
-// Rediriger vers la page des ressources protégées avec le jeton d'accès
-header('Location: ' . RESOURCE_URL . '?access_token=' . $access_token);
-exit;
+    // Sauvegarder le jeton d'accès pour l'utiliser plus tard (session ou base de données)
+    session_start();
+    $_SESSION['access_token'] = $access_token;
+
+    // Rediriger l'utilisateur vers la page de ressources protégées
+    header('Location: resource.php');
+    exit;
+} else {
+    echo "Erreur lors de l'obtention du jeton d'accès.";
+    exit;
+}
 ?>

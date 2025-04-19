@@ -1,5 +1,8 @@
 <?php
-
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'oauth2_project'); // Nom de la base de données
+define('DB_USER', 'root');          // Utilisateur MySQL
+define('DB_PASS', '');     
 
 // config.php
 define('CLIENT_ID', 'quickview-client');

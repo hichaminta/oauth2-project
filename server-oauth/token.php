@@ -33,13 +33,14 @@ if (!$auth_code || strtotime($auth_code['expires_at']) < time()) {
 $access_token = bin2hex(random_bytes(32));
 $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-$stmt = $pdo->prepare("INSERT INTO access_tokens (token, user_id, client_id, expires_at) 
+// Mise à jour de la requête pour utiliser 'access_token' au lieu de 'token'
+$stmt = $pdo->prepare("INSERT INTO access_tokens (access_token, user_id, client_id, expires) 
                        VALUES (?, ?, ?, ?)");
 $stmt->execute([$access_token, $auth_code['user_id'], $client_id, $expires]);
 
 // Générer un jeton de rafraîchissement
 $refresh_token = bin2hex(random_bytes(32));
-$stmt = $pdo->prepare("INSERT INTO refresh_tokens (token, user_id, client_id, expires_at) 
+$stmt = $pdo->prepare("INSERT INTO refresh_tokens (refresh_token, user_id, client_id, expires) 
                        VALUES (?, ?, ?, ?)");
 $stmt->execute([$refresh_token, $auth_code['user_id'], $client_id, date('Y-m-d H:i:s', strtotime('+30 days'))]);
 

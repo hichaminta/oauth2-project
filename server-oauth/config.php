@@ -8,4 +8,4 @@ define('DB_PASS', '');      // Changez selon votre configuration
 // Paramètres OAuth
 define('CLIENT_ID', 'quickview-client');
 define('CLIENT_SECRET', 'secret123');
-define('REDIRECT_URI', 'http://localhost/client-web/callback.php');
+define('REDIRECT_URI', 'http://localhost/oauth2-project/client-web/callback.php');
