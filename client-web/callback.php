@@ -1,47 +1,37 @@
 <?php
-// callback.php - Gestion du code d'autorisation et récupération du jeton d'accès
-
-// Inclure la configuration
-include 'config.php';
-
-// Vérifier si le code d'autorisation est dans l'URL
+session_start();
 if (!isset($_GET['code'])) {
-    die('Code d\'autorisation manquant.');
+    die("Code d'autorisation manquant.");
 }
 
-$code = $_GET['code'];  // Récupérer le code d'autorisation
+$code = $_GET['code'];
+$token_url = "http://localhost/oauth2-project/server-oauth/token.php";
+$client_id = "quickview-client";
+$client_secret = "secret123";
+$redirect_uri = "http://localhost/oauth2-project/client-web/callback.php";
 
-// Préparer la requête pour échanger le code contre un jeton d'accès
-$response = file_get_contents(TOKEN_URL, false, stream_context_create([
+// Appel POST pour obtenir le token
+$response = file_get_contents($token_url, false, stream_context_create([
     'http' => [
         'method' => 'POST',
-        'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+        'header'  => "Content-type: application/x-www-form-urlencoded",
         'content' => http_build_query([
-            'client_id' => CLIENT_ID,
-            'client_secret' => CLIENT_SECRET,
+            'grant_type' => 'authorization_code',
             'code' => $code,
-            'redirect_uri' => REDIRECT_URI,
-            'grant_type' => 'authorization_code'  // Type de flux d'autorisation
+            'redirect_uri' => $redirect_uri,
+            'client_id' => $client_id,
+            'client_secret' => $client_secret
         ])
     ]
 ]));
 
-// Décoder la réponse JSON
-$token_data = json_decode($response, true);
-
-// Vérifier si le jeton d'accès est dans la réponse
-if (isset($token_data['access_token'])) {
-    $access_token = $token_data['access_token'];
-
-    // Sauvegarder le jeton d'accès pour l'utiliser plus tard (session ou base de données)
-    session_start();
-    $_SESSION['access_token'] = $access_token;
-
-    // Rediriger l'utilisateur vers la page de ressources protégées
-    header('Location: resource.php');
+$data = json_decode($response, true);
+if (isset($data['access_token'])) {
+    $_SESSION['access_token'] = $data['access_token'];
+    header("Location: view.php");
     exit;
 } else {
-    echo "Erreur lors de l'obtention du jeton d'accès.";
-    exit;
+    echo "Erreur lors de la récupération du jeton :";
+    var_dump($data);
 }
 ?>

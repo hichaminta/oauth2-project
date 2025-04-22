@@ -1,8 +1,8 @@
 <?php
 // config.php contient la configuration pour la vérification du jeton
-include 'config.php';
+include 'config.php';  // Charger la configuration de la base de données
 
-// Vérifier si le jeton d'accès est fourni
+// Vérifier si le jeton d'accès est passé dans la requête
 if (!isset($_GET['access_token'])) {
     http_response_code(401);
     echo "Erreur : Jeton d'accès manquant.";
