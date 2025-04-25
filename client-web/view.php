@@ -34,5 +34,7 @@ if (isset($data['error'])) {
     echo "<p>Aucun fichier disponible ou erreur de données.</p>";
 }
 ?>
+        <a href="logout.php" class="logout-btn">Déconnexion</a>
+
 </body>
 </html>
