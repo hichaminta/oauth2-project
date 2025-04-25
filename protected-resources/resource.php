@@ -21,17 +21,41 @@ try {
     $stmt->execute(['token' => $access_token]);
 
     if ($stmt->fetch()) {
-        // Jeton valide → afficher la ressource protégée
-        echo "<h2>Jeton valide. Accès à la ressource :</h2><pre>";
-        echo file_get_contents('resource.txt'); // Affichage de la ressource protégée
-        echo "</pre>";
+        // Jeton valide → lister les fichiers dans le dossier 'ressources/'
+        $directory = 'ressources/'; // Dossier contenant les fichiers
+
+        // Vérifier si le dossier existe
+        if (!is_dir($directory)) {
+            http_response_code(500);
+            echo "Erreur : Le dossier 'ressources/' n'existe pas.";
+            exit;
+        }
+
+        $files = scandir($directory);
+
+        // Enlever les "." et ".." qui sont présents dans le retour de scandir
+        $files = array_diff($files, array('.', '..'));
+
+        // Créer un tableau pour afficher les fichiers avec un lien vers `access_file.php`
+        $file_data = [];
+        foreach ($files as $file) {
+            // Générer un lien vers `access_file.php` pour chaque fichier
+            $file_data[] = [
+                'name' => $file,
+                'size' => filesize($directory . $file),
+                'url'  => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file)
+            ];
+        }
+
+        // Retourner les fichiers sous forme de JSON
+        echo json_encode(['files' => $file_data]);
     } else {
         http_response_code(403);
-        echo "Jeton invalide ou expiré.";
+        echo json_encode(['error' => 'Jeton invalide ou expiré.']);
     }
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo "Erreur base de données : " . $e->getMessage();
+    echo json_encode(['error' => 'Erreur base de données : ' . $e->getMessage()]);
 }
 ?>

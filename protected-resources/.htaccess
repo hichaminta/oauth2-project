@@ -1,0 +1,16 @@
+Order Deny,Allow
+Deny from all
+
+# Pour 'resource.php' - déjà existant
+<Files "resource.php">
+    SetEnvIf Referer "^http://localhost/oauth2-project/client-web/" ACCESS_GRANTED
+    SetEnvIf Request_URI "^/oauth2-project/protected-resources/resource.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
+    Allow from env=ACCESS_GRANTED
+</Files>
+
+# Pour 'access_file.php' - ajout du contrôle d'accès
+<Files "access_file.php">
+    SetEnvIf Referer "^http://localhost/oauth2-project/client-web/" ACCESS_GRANTED
+    SetEnvIf Request_URI "^/oauth2-project/protected-resources/access_file.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
+    Allow from env=ACCESS_GRANTED
+</Files>
