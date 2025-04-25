@@ -32,9 +32,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<h2>Connexion OAuth</h2>
-<form method="POST">
-    <input type="text" name="username" placeholder="Nom d'utilisateur" required><br>
-    <input type="password" name="password" placeholder="Mot de passe" required><br>
-    <button type="submit">Se connecter</button>
-</form>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion OAuth</title>
+    <link rel="stylesheet" href="css/style.css"> <!-- Inclusion du fichier CSS -->
+</head>
+<body>
+    <div class="container">
+        <h2>Connexion SecureAuth</h2>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+            <input type="password" name="password" placeholder="Mot de passe" required>
+            <button type="submit">Se connecter</button>
+        </form>
+        <?php if (isset($error_message)): ?>
+            <p class="error"><?= htmlspecialchars($error_message) ?></p>
+        <?php endif; ?>
+    </div>
+</body>
+</html>
