@@ -1,8 +1,7 @@
 <?php
-include 'config.php';         // Paramètres de connexion à la base
-include 'validate_token.php'; // Inclure la fonction validate_token()
+header('Content-Type: application/json');
 
-// Vérifier si le jeton d'accès est passé dans la requête
+// Vérifier si le jeton d'accès est présent
 if (!isset($_GET['access_token'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Jeton d\'accès manquant.']);
@@ -11,34 +10,46 @@ if (!isset($_GET['access_token'])) {
 
 $access_token = $_GET['access_token'];
 
-// 🔐 Valider le jeton en appelant la fonction
-if (!validate_token($access_token)) {
+// Appeler le serveur OAuth pour valider le token
+$validation_url = "http://localhost/oauth2-project/server-oauth/validate_token.php?access_token=" . urlencode($access_token);
+$response = @file_get_contents($validation_url);
+
+if ($response === FALSE) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Impossible de vérifier le token.']);
+    exit;
+}
+
+$data = json_decode($response, true);
+
+// Vérifier si le token est actif
+if (!isset($data['active']) || !$data['active']) {
     http_response_code(403);
     echo json_encode(['error' => 'Jeton invalide ou expiré.']);
     exit;
 }
 
-// ✅ Jeton valide → lister les fichiers dans le dossier 'ressources/'
-$directory = 'ressources/';
-
+// Lister les fichiers disponibles
+$directory = __DIR__ . '/ressources/';
 if (!is_dir($directory)) {
     http_response_code(500);
-    echo json_encode(['error' => 'Le dossier "ressources/" n\'existe pas.']);
+    echo json_encode(['error' => 'Le dossier ressources/ est introuvable.']);
     exit;
 }
 
 $files = scandir($directory);
-$files = array_diff($files, array('.', '..'));
+$files = array_diff($files, ['.', '..']);
 
 $file_data = [];
 foreach ($files as $file) {
-    $file_data[] = [
-        'name' => $file,
-        'size' => filesize($directory . $file),
-        'url'  => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file)
-    ];
+    $path = $directory . $file;
+    if (is_file($path)) {
+        $file_data[] = [
+            'name' => $file,
+            'size' => filesize($path),
+            'url'  => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file)
+        ];
+    }
 }
 
-// Retourner les fichiers en JSON
 echo json_encode(['files' => $file_data]);
-?>
