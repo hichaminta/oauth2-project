@@ -25,6 +25,7 @@ if (isset($data['error'])) {
 } elseif (isset($data['files']) && is_array($data['files'])) {
     echo "<ul>";
     foreach ($data['files'] as $file) {
+        echo $file['url'];
         // Afficher les fichiers avec un lien pour le téléchargement
         echo "<li>" . htmlspecialchars($file['name']) . " (Taille: " . htmlspecialchars($file['size']) . ") ";
         echo "<a href='" . htmlspecialchars($file['url']) . "'>Télécharger</a></li>";
