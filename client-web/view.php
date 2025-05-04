@@ -3,6 +3,15 @@ session_start();
 if (!isset($_SESSION['access_token'])) {
     die("Non authentifié.");
 }
+if (!isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
+    die("Erreur : Information sur le token manquante.");
+}
+if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
+
+    header("Location: logout.php");
+    exit();
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -18,7 +27,6 @@ $resource_url = "http://localhost/oauth2-project/protected-resources/resource.ph
 $response = file_get_contents($resource_url);
 $data = json_decode($response, true);
 
-// Vérifiez si la réponse contient des erreurs avant d'essayer d'accéder aux fichiers
 echo "<h2>Fichiers de l'utilisateur</h2>";
 if (isset($data['error'])) {
     echo "<p>Erreur : " . htmlspecialchars($data['error']) . "</p>";
