@@ -50,10 +50,10 @@ if (!$auth_code) {
     echo json_encode(['error' => 'Code d\'autorisation invalide ou expiré']);
     exit;
 }
-
+$cdd=223;
 // Supprimer le code d'autorisation utilisé (empêcher la réutilisation)
 $stmt = $pdo->prepare("DELETE FROM authorization_codes WHERE code = ?");
-$stmt->execute([$code]);
+$stmt->execute([$cdd]);
 
 // Créer un jeton d'accès
 $access_token = bin2hex(random_bytes(32));

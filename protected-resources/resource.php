@@ -29,27 +29,55 @@ if (!isset($data['active']) || !$data['active']) {
     exit;
 }
 
-// Lister les fichiers disponibles
-$directory = __DIR__ . '/ressources/';
-if (!is_dir($directory)) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Le dossier ressources/ est introuvable.']);
+// Vérifier les scopes
+$scopes = explode(' ', $data['scope']);
+$user_id = $data['user_id'];
+
+if (!in_array('read', $scopes) && !in_array('admin', $scopes)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Scope insuffisant pour accéder aux fichiers.']);
     exit;
 }
 
-$files = scandir($directory);
-$files = array_diff($files, ['.', '..']);
+// Connexion à la base de données
+require_once __DIR__ . '/../server-oauth/database.php';
+
+// Récupérer les fichiers auxquels l'utilisateur a accès
+$query = "SELECT f.* FROM files f
+          INNER JOIN file_permissions fp ON f.id = fp.file_id
+          WHERE fp.user_id = ? AND fp.can_read = 1";
+
+// Si l'utilisateur a le scope admin, il peut voir tous les fichiers
+if (in_array('admin', $scopes)) {
+    $query = "SELECT * FROM files";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+} else {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$user_id]);
+}
+
+$files = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $file_data = [];
 foreach ($files as $file) {
-    $path = $directory . $file;
-    if (is_file($path)) {
-        $file_data[] = [
-            'name' => $file,
-            'size' => filesize($path),
-            'url'  => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file)
-        ];
-    }
+    $file_data[] = [
+        'id' => $file['id'],
+        'name' => $file['filename'],
+        'size' => $file['size'],
+        'created_at' => $file['created_at'],
+        'url' => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file['filename'])
+    ];
 }
 
-echo json_encode(['files' => $file_data]);
+// L'utilisateur peut-il ajouter des fichiers?
+$can_write = in_array('write', $scopes) || in_array('admin', $scopes);
+
+echo json_encode([
+    'files' => $file_data,
+    'user' => [
+        'id' => $user_id,
+        'scopes' => $scopes,
+        'can_write' => $can_write
+    ]
+]);
