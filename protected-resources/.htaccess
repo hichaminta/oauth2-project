@@ -28,3 +28,10 @@ Deny from all
     SetEnvIf Request_URI "^/oauth2-project/protected-resources/delete.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
     Allow from env=ACCESS_GRANTED
 </Files>
+
+# Pour 'admin_api.php' — AJOUT
+<Files "admin_api.php">
+    SetEnvIf Referer "^http://localhost/oauth2-project/client-web/" ACCESS_GRANTED
+    SetEnvIf Request_URI "^/oauth2-project/protected-resources/admin_api.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
+    Allow from env=ACCESS_GRANTED
+</Files>

@@ -34,7 +34,7 @@ $scopes = explode(' ', $data['scope']);
 $user_id = $data['user_id'];
 
 // Connexion à la base de données
-require_once __DIR__ . '../server-oauth/database.php';
+require_once __DIR__ . '/database.php';
 
 // Vérifier si l'utilisateur a accès à ce fichier spécifique
 $query = "SELECT f.* FROM files f
