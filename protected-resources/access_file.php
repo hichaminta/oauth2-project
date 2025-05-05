@@ -29,6 +29,45 @@ if (!isset($data['active']) || !$data['active']) {
     exit;
 }
 
+// Récupérer l'ID utilisateur et le scope du token
+$user_id = $data['user_id'];
+$scope = $data['scope'];
+
+// Initialiser la connexion à la base de données
+require_once '../server-oauth/database.php';
+
+// Vérifier si l'utilisateur a le scope 'read' ou 'admin'
+$has_read_scope = strpos($scope, 'read') !== false;
+$has_admin_scope = strpos($scope, 'admin') !== false;
+
+if (!$has_read_scope && !$has_admin_scope) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Permissions insuffisantes. Le scope "read" est requis.']);
+    exit;
+}
+
+// Vérifier si l'utilisateur a accès au fichier
+if ($has_admin_scope) {
+    // Les admins ont accès à tous les fichiers
+    $has_access = true;
+} else {
+    // Vérifier les permissions spécifiques pour ce fichier
+    $stmt = $pdo->prepare("
+        SELECT fp.can_read
+        FROM files f
+        JOIN files_permissions fp ON f.id = fp.file_id
+        WHERE f.filename = ? AND fp.user_id = ? AND fp.can_read = 1
+    ");
+    $stmt->execute([$file, $user_id]);
+    $has_access = $stmt->rowCount() > 0;
+}
+
+if (!$has_access) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Accès refusé à ce fichier.']);
+    exit;
+}
+
 // Préparer le chemin du fichier
 $directory = __DIR__ . '/ressources/';
 $file_path = $directory . basename($file);

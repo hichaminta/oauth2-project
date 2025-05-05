@@ -72,3 +72,46 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
+
+
+-- Ajout de la table pour stocker les fichiers
+CREATE TABLE `files` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `filename` varchar(255) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `size` int(11) NOT NULL,
+  `date_added` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `filename` (`filename`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Ajout de la table pour stocker les permissions des fichiers
+CREATE TABLE `files_permissions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `file_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `can_read` tinyint(1) NOT NULL DEFAULT 1,
+  `can_write` tinyint(1) NOT NULL DEFAULT 0,
+  `can_delete` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `file_user_unique` (`file_id`, `user_id`),
+  CONSTRAINT `fk_file_id` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Script pour initialiser les fichiers existants dans le système
+INSERT INTO `files` (`filename`, `type`, `size`, `date_added`)
+SELECT 
+  DISTINCT filename,
+  SUBSTRING_INDEX(filename, '.', -1) AS type,
+  0 AS size,
+  NOW() AS date_added
+FROM (
+  SELECT 'hi.pdf' AS filename UNION ALL
+  SELECT 'resource.txt' AS filename
+) AS existing_files;
+
+-- Donner accès par défaut à l'utilisateur existant
+INSERT INTO `files_permissions` (`file_id`, `user_id`, `can_read`, `can_write`, `can_delete`)
+SELECT f.id, 1, 1, 0, 0
+FROM `files` f;
