@@ -29,42 +29,30 @@ if (!isset($data['active']) || !$data['active']) {
     exit;
 }
 
-// Récupérer l'ID utilisateur et le scope du token
+// Récupérer l'ID de l'utilisateur et les scopes
 $user_id = $data['user_id'];
-$scope = $data['scope'];
+$scopes = explode(' ', $data['scope']);
 
-// Initialiser la connexion à la base de données
-require_once '../server-oauth/database.php';
+// Connecter à la base de données pour vérifier les permissions
+require_once __DIR__ . '/../server-oauth/database.php';
 
-// Vérifier si l'utilisateur a le scope 'read' ou 'admin'
-$has_read_scope = strpos($scope, 'read') !== false;
-$has_admin_scope = strpos($scope, 'admin') !== false;
+// Vérifier si l'utilisateur a accès à ce fichier spécifique
+$has_permission = false;
 
-if (!$has_read_scope && !$has_admin_scope) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Permissions insuffisantes. Le scope "read" est requis.']);
-    exit;
-}
-
-// Vérifier si l'utilisateur a accès au fichier
-if ($has_admin_scope) {
-    // Les admins ont accès à tous les fichiers
-    $has_access = true;
+// Les administrateurs ont accès à tous les fichiers
+if (in_array('admin', $scopes)) {
+    $has_permission = true;
 } else {
-    // Vérifier les permissions spécifiques pour ce fichier
-    $stmt = $pdo->prepare("
-        SELECT fp.can_read
-        FROM files f
-        JOIN files_permissions fp ON f.id = fp.file_id
-        WHERE f.filename = ? AND fp.user_id = ? AND fp.can_read = 1
-    ");
-    $stmt->execute([$file, $user_id]);
-    $has_access = $stmt->rowCount() > 0;
+    // Vérifier si l'utilisateur a une permission explicite
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM files_permissions WHERE user_id = ? AND file_name = ?");
+    $stmt->execute([$user_id, basename($file)]);
+    $count = $stmt->fetchColumn();
+    $has_permission = ($count > 0);
 }
 
-if (!$has_access) {
+if (!$has_permission) {
     http_response_code(403);
-    echo json_encode(['error' => 'Accès refusé à ce fichier.']);
+    echo json_encode(['error' => 'Vous n\'avez pas accès à ce fichier.']);
     exit;
 }
 
@@ -89,4 +77,3 @@ ob_clean();
 flush();
 readfile($file_path);
 exit;
-?>

@@ -1,8 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['access_token'])) {
-    header("Location: index.php");
-    exit;
+    die("Non authentifié.");
 }
 if (!isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
     die("Erreur : Information sur le token manquante.");
@@ -12,16 +11,43 @@ if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
     exit();
 }
 
-// Valider le token pour récupérer les infos (notamment le scope)
-$validate_url = "http://localhost/oauth2-project/server-oauth/validate_token.php?access_token=" . $_SESSION['access_token'];
-$response = file_get_contents($validate_url);
-$token_data = json_decode($response, true);
+// Récupération des informations sur le token
+$validation_url = "http://localhost/oauth2-project/server-oauth/validate_token.php?access_token=" . urlencode($_SESSION['access_token']);
+$validation_response = @file_get_contents($validation_url);
+$token_data = json_decode($validation_response, true);
 
-$scope = isset($token_data['scope']) ? $token_data['scope'] : 'read';
-$scopes = explode(' ', $scope);
-$has_read = in_array('read', $scopes) || in_array('admin', $scopes);
-$has_write = in_array('write', $scopes) || in_array('admin', $scopes);
-$has_admin = in_array('admin', $scopes);
+// Vérification des scopes disponibles
+$scopes = explode(' ', $token_data['scope'] ?? 'read');
+$can_upload = in_array('write', $scopes) || in_array('admin', $scopes);
+$is_admin = in_array('admin', $scopes);
+
+// Gestion du téléchargement de fichier
+$upload_message = '';
+$upload_error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_upload && isset($_FILES['file'])) {
+    $ch = curl_init("http://localhost/oauth2-project/protected-resources/upload_file.php?access_token=" . urlencode($_SESSION['access_token']));
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, [
+        'file' => new CURLFile($_FILES['file']['tmp_name'], $_FILES['file']['type'], $_FILES['file']['name'])
+    ]);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    
+    if ($error) {
+        $upload_error = "Erreur lors du téléchargement: " . $error;
+    } else {
+        $result = json_decode($response, true);
+        if (isset($result['success'])) {
+            $upload_message = "Fichier téléchargé avec succès!";
+        } else {
+            $upload_error = $result['error'] ?? "Erreur inconnue lors du téléchargement.";
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -31,136 +57,96 @@ $has_admin = in_array('admin', $scopes);
     <title>Fichiers de l'utilisateur</title>
     <link rel="stylesheet" href="css/view.css">
     <style>
+        .upload-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .success-message {
+            color: green;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
         .permissions-badge {
             display: inline-block;
             padding: 3px 8px;
-            margin: 2px;
-            border-radius: 3px;
+            border-radius: 12px;
             font-size: 12px;
-            font-weight: bold;
+            margin-left: 10px;
         }
-        .read { background-color: #e7f4ff; color: #0066cc; }
-        .write { background-color: #e6f9e6; color: #006600; }
-        .admin { background-color: #f9e6e6; color: #cc0000; }
-        
-        .file-actions button {
-            padding: 5px 10px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
+        .admin-badge {
+            background-color: #dc3545;
+            color: white;
         }
-        .download-btn { background-color: #4CAF50; color: white; }
-        .edit-btn { background-color: #2196F3; color: white; }
-        .delete-btn { background-color: #f44336; color: white; }
-        
-        .permission-denied {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .write-badge {
+            background-color: #ffc107;
+            color: black;
+        }
+        .read-badge {
+            background-color: #28a745;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Fichiers de l'utilisateur</h2>
-        
-        <div class="permissions-info">
-            <h3>Vos permissions</h3>
-            <div>
-                <?php if ($has_read): ?>
-                    <span class="permissions-badge read">Lecture</span>
-                <?php endif; ?>
-                <?php if ($has_write): ?>
-                    <span class="permissions-badge write">Écriture</span>
-                <?php endif; ?>
-                <?php if ($has_admin): ?>
-                    <span class="permissions-badge admin">Administration</span>
-                <?php endif; ?>
-            </div>
-        </div>
-        
-        <?php
-        $resource_url = "http://localhost/oauth2-project/protected-resources/resource.php?access_token=" . $_SESSION['access_token'];
-        $response = file_get_contents($resource_url);
-        $data = json_decode($response, true);
-
-        if (isset($data['error'])) {
-            echo "<div class='error-message'>";
-            echo "<p>Erreur : " . htmlspecialchars($data['error']) . "</p>";
-            echo "</div>";
-        } elseif (isset($data['files']) && is_array($data['files'])) {
-            echo "<table class='files-table'>";
-            echo "<thead>";
-            echo "<tr>";
-            echo "<th>Nom</th>";
-            echo "<th>Taille</th>";
-            echo "<th>Permissions</th>";
-            echo "<th>Actions</th>";
-            echo "</tr>";
-            echo "</thead>";
-            echo "<tbody>";
-            
-            foreach ($data['files'] as $file) {
-                echo "<tr>";
-                echo "<td>" . htmlspecialchars($file['name']) . "</td>";
-                echo "<td>" . htmlspecialchars(number_format($file['size'] / 1024, 2)) . " KB</td>";
-                
-                // Affichage des permissions spécifiques
-                echo "<td>";
-                if ($file['permissions']['read']) echo "<span class='permissions-badge read'>Lecture</span>";
-                if ($file['permissions']['write']) echo "<span class='permissions-badge write'>Écriture</span>";
-                if ($file['permissions']['delete']) echo "<span class='permissions-badge admin'>Suppression</span>";
-                echo "</td>";
-                
-                // Actions
-                echo "<td class='file-actions'>";
-                
-                // Télécharger - nécessite permission de lecture
-                if ($file['permissions']['read']) {
-                    echo "<a href='" . htmlspecialchars($file['url']) . "'>";
-                    echo "<button class='download-btn'>Télécharger</button>";
-                    echo "</a>";
-                } else {
-                    echo "<button class='download-btn permission-denied' disabled>Télécharger</button>";
-                }
-                
-                // Éditer - nécessite permission d'écriture
-                if ($has_write && $file['permissions']['write']) {
-                    echo "<button class='edit-btn'>Éditer</button>";
-                } else {
-                    echo "<button class='edit-btn permission-denied' disabled>Éditer</button>";
-                }
-                
-                // Supprimer - nécessite permission de suppression
-                if ($has_admin && $file['permissions']['delete']) {
-                    echo "<button class='delete-btn'>Supprimer</button>";
-                } else {
-                    echo "<button class='delete-btn permission-denied' disabled>Supprimer</button>";
-                }
-                
-                echo "</td>";
-                echo "</tr>";
-            }
-            
-            echo "</tbody>";
-            echo "</table>";
-            
-            // Bouton d'ajout de fichier - nécessite permission d'écriture
-            if ($has_write) {
-                echo "<div class='upload-section'>";
-                echo "<h3>Ajouter un fichier</h3>";
-                echo "<form action='upload.php' method='post' enctype='multipart/form-data'>";
-                echo "<input type='file' name='file' required>";
-                echo "<button type='submit'>Téléverser</button>";
-                echo "</form>";
-                echo "</div>";
-            }
-        } else {
-            echo "<p>Aucun fichier disponible ou erreur de données.</p>";
-        }
-        ?>
-        
-        <a href="logout.php" class="logout-btn">Déconnexion</a>
+    <h2>Fichiers de l'utilisateur</h2>
+    
+    <div>
+        <span>Permissions: </span>
+        <?php foreach ($scopes as $scope): ?>
+            <span class="permissions-badge <?= $scope ?>-badge"><?= htmlspecialchars($scope) ?></span>
+        <?php endforeach; ?>
     </div>
+    
+    <?php if ($can_upload): ?>
+    <div class="upload-section">
+        <h3>Télécharger un fichier</h3>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Télécharger</button>
+        </form>
+        <?php if ($upload_message): ?>
+            <p class="success-message"><?= htmlspecialchars($upload_message) ?></p>
+        <?php endif; ?>
+        <?php if ($upload_error): ?>
+            <p class="error-message"><?= htmlspecialchars($upload_error) ?></p>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    
+    <h3>Liste des fichiers</h3>
+    <?php
+    $resource_url = "http://localhost/oauth2-project/protected-resources/resource.php?access_token=" . $_SESSION['access_token'];
+    $response = file_get_contents($resource_url);
+    $data = json_decode($response, true);
+
+    if (isset($data['error'])) {
+        echo "<p class='error-message'>Erreur : " . htmlspecialchars($data['error']) . "</p>";
+    } elseif (isset($data['files']) && is_array($data['files'])) {
+        if (count($data['files']) > 0) {
+            echo "<ul>";
+            foreach ($data['files'] as $file) {
+                echo "<li>" . htmlspecialchars($file['name']) . " (Taille: " . htmlspecialchars($file['size']) . " octets) ";
+                echo "<a href='" . htmlspecialchars($file['url']) . "'>Télécharger</a></li>";
+            }
+            echo "</ul>";
+        } else {
+            echo "<p>Aucun fichier accessible avec vos permissions.</p>";
+        }
+    } else {
+        echo "<p>Aucun fichier disponible ou erreur de données.</p>";
+    }
+    ?>
+    
+    <?php if ($is_admin): ?>
+        <a href="admin.php" class="logout-btn" style="background-color: #007bff; margin-right: 10px;">Panneau d'administration</a>
+    <?php endif; ?>
+    
+    <a href="logout.php" class="logout-btn">Déconnexion</a>
 </body>
 </html>

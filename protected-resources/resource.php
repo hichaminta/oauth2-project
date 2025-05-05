@@ -29,21 +29,30 @@ if (!isset($data['active']) || !$data['active']) {
     exit;
 }
 
-// Récupérer l'ID utilisateur et le scope du token
-$user_id = $data['user_id'];
-$scope = $data['scope'];
-
-// Initialiser la connexion à la base de données
-require_once '../server-oauth/database.php';
-
-// Vérifier si l'utilisateur a le scope 'read'
-$has_read_scope = strpos($scope, 'read') !== false;
-$has_admin_scope = strpos($scope, 'admin') !== false;
-
-if (!$has_read_scope && !$has_admin_scope) {
+// Vérifier le scope minimal requis (read)
+$scopes = explode(' ', $data['scope']);
+if (!in_array('read', $scopes) && !in_array('admin', $scopes)) {
     http_response_code(403);
     echo json_encode(['error' => 'Permissions insuffisantes. Le scope "read" est requis.']);
     exit;
+}
+
+// Récupérer l'ID de l'utilisateur
+$user_id = $data['user_id'];
+
+// Connecter à la base de données pour vérifier les permissions
+require_once __DIR__ . '/../server-oauth/database.php';
+
+// Récupérer les fichiers auxquels l'utilisateur a accès
+if (in_array('admin', $scopes)) {
+    // Les administrateurs ont accès à tous les fichiers
+    $stmt = $pdo->query("SELECT DISTINCT file_name FROM files_permissions");
+    $permitted_files = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    // Les utilisateurs normaux n'ont accès qu'aux fichiers autorisés
+    $stmt = $pdo->prepare("SELECT file_name FROM files_permissions WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $permitted_files = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
 // Lister les fichiers disponibles
@@ -54,57 +63,25 @@ if (!is_dir($directory)) {
     exit;
 }
 
-// Si l'utilisateur a le scope admin, il peut voir tous les fichiers
-if ($has_admin_scope) {
-    $stmt = $pdo->prepare("
-        SELECT f.id, f.filename, f.size, 1 as can_read, 1 as can_write, 1 as can_delete
-        FROM files f
-    ");
-    $stmt->execute();
-} 
-// Sinon, on récupère seulement les fichiers auxquels l'utilisateur a accès
-else {
-    $stmt = $pdo->prepare("
-        SELECT f.id, f.filename, f.size, 
-               fp.can_read, fp.can_write, fp.can_delete
-        FROM files f
-        JOIN files_permissions fp ON f.id = fp.file_id
-        WHERE fp.user_id = ? AND fp.can_read = 1
-    ");
-    $stmt->execute([$user_id]);
-}
+$files = scandir($directory);
+$files = array_diff($files, ['.', '..']);
 
-$files = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Préparer le tableau de réponse
 $file_data = [];
 foreach ($files as $file) {
-    // Vérifier que le fichier existe physiquement
-    $path = $directory . $file['filename'];
-    if (file_exists($path) && is_file($path)) {
-        // Mettre à jour la taille réelle dans la base de données si nécessaire
-        $real_size = filesize($path);
-        if ($file['size'] != $real_size) {
-            $update = $pdo->prepare("UPDATE files SET size = ? WHERE id = ?");
-            $update->execute([$real_size, $file['id']]);
-            $file['size'] = $real_size;
-        }
-        
-        // Ajouter le fichier à la liste
+    $path = $directory . $file;
+    if (is_file($path) && (in_array($file, $permitted_files) || in_array('admin', $scopes))) {
         $file_data[] = [
-            'id' => $file['id'],
-            'name' => $file['filename'],
-            'size' => $file['size'],
-            'permissions' => [
-                'read' => (bool)$file['can_read'],
-                'write' => (bool)$file['can_write'],
-                'delete' => (bool)$file['can_delete']
-            ],
-            'url' => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . 
-                   urlencode($access_token) . "&file=" . urlencode($file['filename'])
+            'name' => $file,
+            'size' => filesize($path),
+            'url'  => "http://localhost/oauth2-project/protected-resources/access_file.php?access_token=" . urlencode($access_token) . "&file=" . urlencode($file)
         ];
     }
 }
 
-echo json_encode(['files' => $file_data]);
-?>
+// Inclure une indication si l'utilisateur peut ajouter des fichiers
+$can_upload = in_array('write', $scopes) || in_array('admin', $scopes);
+
+echo json_encode([
+    'files' => $file_data,
+    'can_upload' => $can_upload
+]);
