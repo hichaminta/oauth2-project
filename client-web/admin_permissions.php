@@ -1,5 +1,6 @@
 <?php
 session_start();
+include_once 'variable.php';
 if (!isset($_SESSION['access_token'])) {
     header("Location: index.php");
     exit();
@@ -16,7 +17,7 @@ if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
 }
 
 // Vérifier si l'utilisateur a le scope admin
-$resource_url = "http://localhost/oauth2-project/protected-resources/resource.php?access_token=" . $_SESSION['access_token'];
+$resource_url = $domainenameprressources."resource.php?access_token=" . $_SESSION['access_token'];
 $response = file_get_contents($resource_url);
 $data = json_decode($response, true);
 
@@ -26,7 +27,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
 }
 
 // Connexion à la base de données via API sécurisée
-$api_url = "http://localhost/oauth2-project/protected-resources/admin_api.php?access_token=" . $_SESSION['access_token'];
+$api_url = $domainenameprressources."admin_api.php?access_token=" . $_SESSION['access_token'];
 
 // Traitement des actions (ajout/suppression de permissions)
 $message = '';
@@ -77,6 +78,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 break;
+                
+            case 'add_permission':
+                if (isset($_POST['file_id'], $_POST['user_id'])) {
+                    $params = http_build_query([
+                        'action' => 'add_permission',
+                        'file_id' => $_POST['file_id'],
+                        'user_id' => $_POST['user_id'],
+                        'can_read' => isset($_POST['can_read']) ? 1 : 0,
+                        'can_write' => isset($_POST['can_write']) ? 1 : 0
+                    ]);
+                    $response = json_decode(file_get_contents($api_url . '&' . $params), true);
+    
+                    if (isset($response['success']) && $response['success']) {
+                        $message = 'Permission ajoutée avec succès.';
+                    } else {
+                        $error = $response['error'] ?? 'Erreur lors de l\'ajout de la permission.';
+                    }
+                }
+                break;
+                
+            case 'delete_permission':
+                if (isset($_POST['file_id'], $_POST['user_id'])) {
+                    $params = http_build_query([
+                        'action' => 'delete_permission',
+                        'file_id' => $_POST['file_id'],
+                        'user_id' => $_POST['user_id']
+                    ]);
+                    $response = json_decode(file_get_contents($api_url . '&' . $params), true);
+    
+                    if (isset($response['success']) && $response['success']) {
+                        $message = 'Permission supprimée avec succès.';
+                    } else {
+                        $error = $response['error'] ?? 'Erreur lors de la suppression de la permission.';
+                    }
+                }
+                break;
         }
     }
 }
@@ -104,76 +141,8 @@ $permissions = $permissions_data['permissions'] ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administration des permissions</title>
     <link rel="stylesheet" href="css/view.css">
-    <style>
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .table th, .table td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        .table th {
-            background-color: #f2f2f2;
-            text-align: left;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-check {
-            display: inline-block;
-            margin-right: 15px;
-        }
-        .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/admin_permission.css">
+
 </head>
 <body>
     <div class="container">
@@ -209,7 +178,7 @@ $permissions = $permissions_data['permissions'] ?? [];
                         <td><?= htmlspecialchars($user['role']) ?></td>
                         <td><?= htmlspecialchars($user['available_scopes']) ?></td>
                         <td>
-                            <button class="btn btn-primary" onclick="showEditRoleModal(<?= $user['id'] ?>, '<?= $user['username'] ?>', '<?= $user['role'] ?>', '<?= $user['available_scopes'] ?>')">Modifier</button>
+                            <button class="btn btn-primary" onclick="showEditRoleModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['role']) ?>', '<?= htmlspecialchars($user['available_scopes']) ?>')">Modifier</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -236,8 +205,9 @@ $permissions = $permissions_data['permissions'] ?? [];
                         <td><?= htmlspecialchars($perm['username']) ?></td>
                         <td><?= $perm['can_read'] ? 'Oui' : 'Non' ?></td>
                         <td><?= $perm['can_write'] ? 'Oui' : 'Non' ?></td>
-                        <td>
-                            <button class="btn btn-primary" onclick="showEditPermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= $perm['filename'] ?>', '<?= $perm['username'] ?>', <?= $perm['can_read'] ?>, <?= $perm['can_write'] ?>)">Modifier</button>
+                        <td class="action-buttons">
+                            <button class="btn btn-primary" onclick="showEditPermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>', <?= $perm['can_read'] ?>, <?= $perm['can_write'] ?>)">Modifier</button>
+                            <button class="btn btn-danger" onclick="showDeletePermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>')">Supprimer</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -385,12 +355,36 @@ $permissions = $permissions_data['permissions'] ?? [];
         </div>
     </div>
     
+    <!-- Nouvelle modale pour la suppression de permission -->
+    <div id="deletePermissionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100;">
+        <div style="background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px;">
+            <h3>Supprimer la permission</h3>
+            <form id="deletePermissionForm" method="POST">
+                <input type="hidden" name="action" value="delete_permission">
+                <input type="hidden" name="file_id" id="deleteFileId">
+                <input type="hidden" name="user_id" id="deleteUserId">
+                
+                <div class="form-group">
+                    <p>Êtes-vous sûr de vouloir supprimer définitivement cette permission ?</p>
+                    <p><strong>Fichier:</strong> <span id="deleteFilename"></span></p>
+                    <p><strong>Utilisateur:</strong> <span id="deleteUsername"></span></p>
+                </div>
+                
+                <div style="text-align: right; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="hideModals()">Annuler</button>
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
     // Fonctions pour les modales
     function hideModals() {
         document.getElementById('roleModal').style.display = 'none';
         document.getElementById('permissionModal').style.display = 'none';
         document.getElementById('addPermissionModal').style.display = 'none';
+        document.getElementById('deletePermissionModal').style.display = 'none';
     }
     
     function showEditRoleModal(userId, username, role, scopes) {
@@ -426,6 +420,16 @@ $permissions = $permissions_data['permissions'] ?? [];
     
     function showAddPermissionModal() {
         document.getElementById('addPermissionModal').style.display = 'block';
+    }
+    
+    // Nouvelle fonction pour afficher la modale de suppression
+    function showDeletePermissionModal(fileId, userId, filename, username) {
+        document.getElementById('deleteFileId').value = fileId;
+        document.getElementById('deleteUserId').value = userId;
+        document.getElementById('deleteFilename').textContent = filename;
+        document.getElementById('deleteUsername').textContent = username;
+        
+        document.getElementById('deletePermissionModal').style.display = 'block';
     }
     
     // Préparer les formulaires pour l'envoi

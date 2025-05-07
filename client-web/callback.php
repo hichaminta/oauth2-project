@@ -1,14 +1,16 @@
 <?php
 session_start();
+include_once 'variable.php';
+
 if (!isset($_GET['code'])) {
     die("Code d'autorisation manquant.");
 }
 
 $code = $_GET['code'];
-$token_url = "http://localhost/oauth2-project/server-oauth/token.php";
+$token_url = $domainenameserverauth."token.php";
 $client_id = "quickview-client";
 $client_secret = "secret123";
-$redirect_uri = "http://localhost/oauth2-project/client-web/callback.php";
+$redirect_uri = $domainenameclient."callback.php";
 
 // Appel POST pour obtenir le token
 $ch = curl_init($token_url);

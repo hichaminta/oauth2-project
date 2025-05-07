@@ -1,6 +1,6 @@
 <?php
 session_start();
-
+include_once 'variable.php';
 // Si l'utilisateur est déjà authentifié, rediriger vers view.php
 if (isset($_SESSION['access_token'])) {
     header("Location: view.php");
@@ -9,8 +9,8 @@ if (isset($_SESSION['access_token'])) {
 
 // Paramètres pour la construction de l'URL d'autorisation
 $client_id = "quickview-client";
-$redirect_uri = "http://localhost/oauth2-project/client-web/callback.php";
-$auth_url = "http://localhost/oauth2-project/server-oauth/authorization.php";
+$redirect_uri = $domainenameclient."callback.php";
+$auth_url = $domainenameserverauth."authorization.php";
 $scope = "read";
 
 // Construire l'URL d'autorisation
