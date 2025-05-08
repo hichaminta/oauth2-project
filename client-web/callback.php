@@ -37,6 +37,9 @@ if (isset($data['access_token'])) {
     $_SESSION['access_token'] = $data['access_token'];
     $_SESSION['expires_in'] = $data['expires_in'];
     $_SESSION['token_created'] = time();
+    $_SESSION['client_id'] = "quickview-client";
+    $_SESSION['client_secret'] = "secret123";
+
     header("Location: view.php");
     exit;
 } else {
