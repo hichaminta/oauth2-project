@@ -11,12 +11,42 @@ if (!isset($_SESSION['access_token']) || !isset($_SESSION['token_created']) || !
     header("Location: logout.php");
     exit();
 }
-
+  // Appel à refresh.php avec méthode GET
+   
 // Vérification de l'expiration du token
 if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
-    header("Location: logout.php");
-    exit();
+
+
+    if (isset($_SESSION['refresh_token'])) {
+
+        // Afficher un message d'attente
+     
+        // Appel à refresh.php
+        $url = $domainenameserverauth . "refresh.php?refresh_token=" . urlencode($_SESSION['refresh_token']) .
+               "&client_id=" . urlencode('quickview-client') .
+               "&client_secret=" . urlencode('secret123');
+        
+        $response = file_get_contents($url);
+        $data = json_decode($response, true);
+
+        if (isset($data['access_token'])) {
+            $_SESSION['access_token'] = $data['access_token'];
+            $_SESSION['token_created'] = time();
+            $_SESSION['expires_in'] = $data['expires_in'];
+            // Rediriger pour éviter double affichage
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
+        } else {
+            header("Location: logout.php");
+            exit();
+        }
+
+    } else {
+        header("Location: logout.php");
+        exit();
+    }
 }
+
 
 // Récupérer les informations sur les fichiers
 $resource_url = $domainenameprressources . "resource.php?access_token=" . urlencode($_SESSION['access_token']);
