@@ -12,7 +12,7 @@ if (!isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
     exit();
 }
 if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
-    header("Location: logout.php");
+    header("Location: view.php");
     exit();
 }
 

@@ -124,6 +124,7 @@ function formatSize($size) {
             <h2>Administration des permissions</h2>
             <p>En tant qu'administrateur, vous pouvez gérer les permissions des utilisateurs.</p>
             <a href="admin_permissions.php" class="btn btn-primary">Gérer les permissions</a>
+            <a href="admin_log.php" class="btn btn-primary">Gérer les logs</a>
         </div>
         <?php endif; ?>
 
