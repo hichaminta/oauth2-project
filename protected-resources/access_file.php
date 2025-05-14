@@ -97,6 +97,19 @@ if (!file_exists($file_path) || !is_file($file_path)) {
 
 // Journaliser le succès avant l'envoi
 logAccess($user_id, $file_id, $filename, true, 'Téléchargement du fichier réussi', 'download_complete');
+$acces_file = [
+    'timestamp' => time(),
+    'user_id' => $user_id,
+    'file_id' => $file_id,
+    'filename' => $filename,
+    'action' => 'Telechargement',
+    'success' => true,
+    'message' => 'Téléchargement du fichier réussi',
+    'ip_address' => $_SERVER['REMOTE_ADDR'],
+    'access_token' => $access_token,
+    'scope' => $data['scope'] ?? ''
+];
+$result = publishToBlockchain('access_file_log', $acces_file);
 
 // Envoyer le fichier
 header('Content-Type: application/octet-stream');

@@ -88,13 +88,7 @@ echo json_encode([
     'scope' => $auth_code['scope']
 ]);
 
-/**
- * Publish data to the blockchain
- * 
- * @param string $stream The stream name
- * @param array $data The data to publish
- * @return array The result of the operation
- */
+
 function publishToBlockchain($stream, $data) {
     $rpc_url = "http://multichainrpc:HtbLPm5f1X3HB9XkdkngARZzbbJN7FwDtGtAHJ6Tn3bQ@localhost:5000";
     

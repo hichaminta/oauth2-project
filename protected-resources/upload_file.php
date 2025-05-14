@@ -133,7 +133,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         
         $final_message = 'Fichier téléversé avec succès';
         logAccess($user_id, $file_id, $filename, true, $final_message, 'upload_complete');
-        
+          $upload_file = [
+            'timestamp' => time(),
+            'user_id' => $user_id,
+            'file_id' => $file_id,
+            'filename' => $filename,
+            'action' => 'Telechargement',
+            'success' => true,
+            'message' => 'Téléchargement du fichier réussi',
+            'ip_address' => $_SERVER['REMOTE_ADDR'],
+            'access_token' => $access_token,
+            'scope' => $data['scope'] ?? ''
+        ];
+        publishToBlockchain('upload_file_log', $upload_file);
         echo json_encode([
             'success' => true,
             'message' => $final_message,

@@ -30,3 +30,36 @@
         error_log('Erreur de journalisation: ' . $e->getMessage());
     }
 }
+function publishToBlockchain($stream, $data) {
+    $rpc_url = "http://multichainrpc:9gEwnCkgAXV5v3PPFgEMPyK7LyEyDbZovQq6qScvRnPA@localhost:5001";
+    
+    // Prepare JSON-RPC request
+    $request = [
+        'method' => 'publish',
+        'params' => [
+            $stream,                   // Stream name
+            'token-' . time(),         // Key (unique identifier)
+            bin2hex(json_encode($data)) // Data in hex format
+        ],
+        'id' => uniqid(),
+        'chain_name' => 'DriveChain'
+    ];
+    
+    // Send request to MultiChain
+    $ch = curl_init($rpc_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($request));
+    
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    curl_close($ch);
+    
+    if ($error) {
+        error_log("Blockchain error: " . $error);
+        return ['error' => $error];
+    }
+    
+    return json_decode($response, true);
+}
