@@ -155,28 +155,40 @@ $permissions = $permissions_data['permissions'] ?? [];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administration des permissions</title>
-    <link rel="stylesheet" href="css/view.css">
-    <link rel="stylesheet" href="css/admin_permission.css">
-
+    <title>QuickView - Gestion des Permissions</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
+    <div class="header">
+        <div class="header-content">
+            <h1>QuickView</h1>
+            <nav class="nav-menu">
+                <a href="view.php" class="nav-link">Mes fichiers</a>
+                <a href="admin_permissions.php" class="nav-link active">Permissions</a>
+                <a href="admin_log.php" class="nav-link">Logs</a>
+                <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+            </nav>
+        </div>
+    </div>
+
     <div class="container">
-        <a href="view.php" class="back-link">&larr; Retour à la liste des fichiers</a>
-
-        <h1>Administration des permissions</h1>
-
         <?php if (!empty($message)): ?>
-            <div class="message success"><?= htmlspecialchars($message) ?></div>
+            <div class="alert alert-success" style="margin-top: 2rem;">
+                <?= htmlspecialchars($message) ?>
+            </div>
         <?php endif; ?>
 
         <?php if (!empty($error)): ?>
-            <div class="message error"><?= htmlspecialchars($error) ?></div>
+            <div class="alert alert-error" style="margin-top: 2rem;">
+                <?= htmlspecialchars($error) ?>
+            </div>
         <?php endif; ?>
 
-        <div class="section">
+        <div class="card" style="margin-top: 2rem;">
             <h2>Gestion des rôles utilisateurs</h2>
+            
             <table class="table">
                 <thead>
                     <tr>
@@ -195,7 +207,9 @@ $permissions = $permissions_data['permissions'] ?? [];
                             <td><?= htmlspecialchars($user['role']) ?></td>
                             <td><?= htmlspecialchars($user['available_scopes']) ?></td>
                             <td>
-                                <button class="btn btn-primary" onclick="showEditRoleModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['role']) ?>', '<?= htmlspecialchars($user['available_scopes']) ?>')">Modifier</button>
+                                <button class="btn btn-primary" onclick="showEditRoleModal(<?= $user['id'] ?>, '<?= htmlspecialchars($user['username']) ?>', '<?= htmlspecialchars($user['role']) ?>', '<?= htmlspecialchars($user['available_scopes']) ?>')">
+                                    <i class="fas fa-edit"></i> Modifier
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -203,8 +217,15 @@ $permissions = $permissions_data['permissions'] ?? [];
             </table>
         </div>
 
-        <div class="section">
+        <div class="card" style="margin-top: 2rem;">
             <h2>Permissions par fichier</h2>
+            
+            <div style="margin-bottom: 1rem; text-align: right;">
+                <button class="btn btn-primary" onclick="showAddPermissionModal()">
+                    <i class="fas fa-plus"></i> Ajouter une permission
+                </button>
+            </div>
+            
             <table class="table">
                 <thead>
                     <tr>
@@ -220,63 +241,63 @@ $permissions = $permissions_data['permissions'] ?? [];
                         <tr>
                             <td><?= htmlspecialchars($perm['filename']) ?></td>
                             <td><?= htmlspecialchars($perm['username']) ?></td>
-                            <td><?= $perm['can_read'] ? 'Oui' : 'Non' ?></td>
-                            <td><?= $perm['can_write'] ? 'Oui' : 'Non' ?></td>
-                            <td class="action-buttons">
-                                <button class="btn btn-primary" onclick="showEditPermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>', <?= $perm['can_read'] ?>, <?= $perm['can_write'] ?>)">Modifier</button>
-                                <button class="btn btn-danger" onclick="showDeletePermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>')">Supprimer</button>
+                            <td><?= $perm['can_read'] ? '<i class="fas fa-check" style="color: green;"></i>' : '<i class="fas fa-times" style="color: red;"></i>' ?></td>
+                            <td><?= $perm['can_write'] ? '<i class="fas fa-check" style="color: green;"></i>' : '<i class="fas fa-times" style="color: red;"></i>' ?></td>
+                            <td>
+                                <button class="btn btn-primary" onclick="showEditPermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>', <?= $perm['can_read'] ?>, <?= $perm['can_write'] ?>)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-secondary" onclick="showDeletePermissionModal(<?= $perm['file_id'] ?>, <?= $perm['user_id'] ?>, '<?= htmlspecialchars($perm['filename']) ?>', '<?= htmlspecialchars($perm['username']) ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
-
-            <div style="margin-top: 20px;">
-                <button class="btn btn-primary" onclick="showAddPermissionModal()">Ajouter une permission</button>
-            </div>
         </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modale pour l'édition des rôles -->
     <div id="roleModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100;">
-        <div style="background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px;">
-            <h3>Modifier le rôle utilisateur</h3>
+        <div class="card" style="width: 500px; margin: 100px auto; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Modifier le rôle utilisateur</h3>
             <form id="roleForm" method="POST">
                 <input type="hidden" name="action" value="update_user_role">
                 <input type="hidden" name="user_id" id="roleUserId">
 
                 <div class="form-group">
-                    <label>Utilisateur:</label>
-                    <span id="roleUsername"></span>
+                    <label class="form-label">Utilisateur:</label>
+                    <span id="roleUsername" style="font-weight: 500;"></span>
                 </div>
 
                 <div class="form-group">
-                    <label>Rôle:</label>
-                    <select name="role" id="roleSelect">
+                    <label class="form-label" for="roleSelect">Rôle:</label>
+                    <select name="role" id="roleSelect" class="form-input">
                         <option value="user">Utilisateur</option>
                         <option value="admin">Administrateur</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Scopes disponibles:</label>
-                    <div>
-                        <label class="form-check">
+                    <label class="form-label">Scopes disponibles:</label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                        <label style="display: flex; align-items: center;">
                             <input type="checkbox" name="scope_read" value="read" checked>
-                            Read
+                            <span style="margin-left: 0.5rem;">Lecture</span>
                         </label>
-                        <label class="form-check">
+                        <label style="display: flex; align-items: center;">
                             <input type="checkbox" name="scope_write" value="write">
-                            Write
+                            <span style="margin-left: 0.5rem;">Écriture</span>
                         </label>
-                        <label class="form-check">
+                        <label style="display: flex; align-items: center;">
                             <input type="checkbox" name="scope_admin" value="admin">
-                            Admin
+                            <span style="margin-left: 0.5rem;">Admin</span>
                         </label>
                     </div>
                 </div>
 
-                <div style="text-align: right; margin-top: 20px;">
+                <div style="text-align: right; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="hideModals()">Annuler</button>
                     <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
@@ -284,39 +305,40 @@ $permissions = $permissions_data['permissions'] ?? [];
         </div>
     </div>
 
+    <!-- Modale pour l'édition des permissions -->
     <div id="permissionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100;">
-        <div style="background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px;">
-            <h3>Modifier les permissions</h3>
+        <div class="card" style="width: 500px; margin: 100px auto; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Modifier les permissions</h3>
             <form id="permissionForm" method="POST">
                 <input type="hidden" name="action" value="update_file_permission">
                 <input type="hidden" name="file_id" id="permFileId">
                 <input type="hidden" name="user_id" id="permUserId">
 
                 <div class="form-group">
-                    <label>Fichier:</label>
-                    <span id="permFilename"></span>
+                    <label class="form-label">Fichier:</label>
+                    <span id="permFilename" style="font-weight: 500;"></span>
                 </div>
 
                 <div class="form-group">
-                    <label>Utilisateur:</label>
-                    <span id="permUsername"></span>
+                    <label class="form-label">Utilisateur:</label>
+                    <span id="permUsername" style="font-weight: 500;"></span>
                 </div>
 
                 <div class="form-group">
-                    <label>
+                    <label class="form-label">
                         <input type="checkbox" name="can_read" value="1" id="permCanRead">
-                        Peut lire
+                        <span style="margin-left: 0.5rem;">Peut lire</span>
                     </label>
                 </div>
 
                 <div class="form-group">
-                    <label>
+                    <label class="form-label">
                         <input type="checkbox" name="can_write" value="1" id="permCanWrite">
-                        Peut modifier
+                        <span style="margin-left: 0.5rem;">Peut modifier</span>
                     </label>
                 </div>
 
-                <div style="text-align: right; margin-top: 20px;">
+                <div style="text-align: right; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="hideModals()">Annuler</button>
                     <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
@@ -324,15 +346,16 @@ $permissions = $permissions_data['permissions'] ?? [];
         </div>
     </div>
 
+    <!-- Modale pour ajouter une permission -->
     <div id="addPermissionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100;">
-        <div style="background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px;">
-            <h3>Ajouter une permission</h3>
+        <div class="card" style="width: 500px; margin: 100px auto; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Ajouter une permission</h3>
             <form id="addPermissionForm" method="POST">
                 <input type="hidden" name="action" value="add_permission">
 
                 <div class="form-group">
-                    <label>Fichier:</label>
-                    <select name="file_id" required>
+                    <label class="form-label" for="add_perm_file">Fichier:</label>
+                    <select name="file_id" id="add_perm_file" class="form-input" required>
                         <option value="">-- Sélectionner un fichier --</option>
                         <?php foreach ($files as $file): ?>
                             <option value="<?= $file['id'] ?>"><?= htmlspecialchars($file['filename']) ?></option>
@@ -341,8 +364,8 @@ $permissions = $permissions_data['permissions'] ?? [];
                 </div>
 
                 <div class="form-group">
-                    <label>Utilisateur:</label>
-                    <select name="user_id" required>
+                    <label class="form-label" for="add_perm_user">Utilisateur:</label>
+                    <select name="user_id" id="add_perm_user" class="form-input" required>
                         <option value="">-- Sélectionner un utilisateur --</option>
                         <?php foreach ($users as $user): ?>
                             <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
@@ -351,20 +374,20 @@ $permissions = $permissions_data['permissions'] ?? [];
                 </div>
 
                 <div class="form-group">
-                    <label>
+                    <label class="form-label">
                         <input type="checkbox" name="can_read" value="1" checked>
-                        Peut lire
+                        <span style="margin-left: 0.5rem;">Peut lire</span>
                     </label>
                 </div>
 
                 <div class="form-group">
-                    <label>
+                    <label class="form-label">
                         <input type="checkbox" name="can_write" value="1">
-                        Peut modifier
+                        <span style="margin-left: 0.5rem;">Peut modifier</span>
                     </label>
                 </div>
 
-                <div style="text-align: right; margin-top: 20px;">
+                <div style="text-align: right; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="hideModals()">Annuler</button>
                     <button type="submit" class="btn btn-primary">Ajouter</button>
                 </div>
@@ -372,10 +395,10 @@ $permissions = $permissions_data['permissions'] ?? [];
         </div>
     </div>
 
-    <!-- Nouvelle modale pour la suppression de permission -->
+    <!-- Modale pour la suppression de permission -->
     <div id="deletePermissionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100;">
-        <div style="background: white; width: 500px; margin: 100px auto; padding: 20px; border-radius: 5px;">
-            <h3>Supprimer la permission</h3>
+        <div class="card" style="width: 500px; margin: 100px auto; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Supprimer la permission</h3>
             <form id="deletePermissionForm" method="POST">
                 <input type="hidden" name="action" value="delete_permission">
                 <input type="hidden" name="file_id" id="deleteFileId">
@@ -383,13 +406,13 @@ $permissions = $permissions_data['permissions'] ?? [];
 
                 <div class="form-group">
                     <p>Êtes-vous sûr de vouloir supprimer définitivement cette permission ?</p>
-                    <p><strong>Fichier:</strong> <span id="deleteFilename"></span></p>
+                    <p style="margin-top: 1rem;"><strong>Fichier:</strong> <span id="deleteFilename"></span></p>
                     <p><strong>Utilisateur:</strong> <span id="deleteUsername"></span></p>
                 </div>
 
-                <div style="text-align: right; margin-top: 20px;">
+                <div style="text-align: right; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="hideModals()">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                    <button type="submit" class="btn btn-primary">Supprimer</button>
                 </div>
             </form>
         </div>
@@ -439,7 +462,6 @@ $permissions = $permissions_data['permissions'] ?? [];
             document.getElementById('addPermissionModal').style.display = 'block';
         }
 
-        // Nouvelle fonction pour afficher la modale de suppression
         function showDeletePermissionModal(fileId, userId, filename, username) {
             document.getElementById('deleteFileId').value = fileId;
             document.getElementById('deleteUserId').value = userId;

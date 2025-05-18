@@ -70,65 +70,95 @@ function formatSize($size) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fichiers de l'utilisateur</title>
-    <link rel="stylesheet" href="css/view.css">
+    <title>QuickView - Gestion des fichiers</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <div class="header">
+        <div class="header-content">
+            <h1>QuickView</h1>
+            <nav class="nav-menu">
+                <a href="view.php" class="nav-link active">Mes fichiers</a>
+                <?php if ($is_admin): ?>
+                <a href="admin_permissions.php" class="nav-link">Permissions</a>
+                <a href="admin_log.php" class="nav-link">Logs</a>
+                <?php endif; ?>
+                <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+            </nav>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>Gestion des fichiers</h1>
-
-        <div class="user-info">
-            <p>Vos autorisations : 
-                <?php foreach ($scopes as $scope): ?>
-                    <span class="badge badge-<?= htmlspecialchars($scope) ?>"><?= htmlspecialchars(ucfirst($scope)) ?></span>
-                <?php endforeach; ?>
-            </p>
-        </div>
-
-        <?php if ($can_write): ?>
-        <div class="upload-form">
-            <h3>Téléverser un nouveau fichier</h3>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" required>
-                <button type="submit" class="btn btn-primary">Téléverser</button>
-            </form>
-            <div id="uploadStatus"></div>
-        </div>
-        <?php endif; ?>
-
-        <div class="file-list">
-            <h2>Fichiers disponibles</h2>
-
-            <?php if (isset($data['files']) && !empty($data['files'])): ?>
-                <?php foreach ($data['files'] as $file): ?>
-                <div class="file-item">
-                    <div class="file-info">
-                        <strong><?= htmlspecialchars($file['name']) ?></strong>
-                        <span>(<?= htmlspecialchars(formatSize($file['size'])) ?>)</span>
-                    </div>
-                    <div class="file-actions">
-                        <a href="<?= htmlspecialchars($file['url']) ?>" class="btn btn-download">Télécharger</a>
-                        <?php if ($is_admin): ?>
-                        <button class="btn btn-danger" onclick="deleteFile(<?= (int)$file['id'] ?>)">Supprimer</button>
-                        <?php endif; ?>
-                    </div>
+        <div class="card" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2><i class="fas fa-folder-open"></i> Mes fichiers</h2>
+                <div class="user-info">
+                    <p>Permissions : 
+                        <?php foreach ($scopes as $scope): ?>
+                            <span class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">
+                                <?= htmlspecialchars(ucfirst($scope)) ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </p>
                 </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <p class="no-files">Aucun fichier disponible</p>
+            </div>
+
+            <?php if ($can_write): ?>
+            <div class="card" style="background: var(--light-gray); margin-bottom: 2rem;">
+                <h3><i class="fas fa-upload"></i> Téléverser un fichier</h3>
+                <form id="uploadForm" enctype="multipart/form-data" style="margin-top: 1rem;">
+                    <div class="form-group" style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="file" name="file" required class="form-input" style="flex: 1;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-cloud-upload-alt"></i> Téléverser
+                        </button>
+                    </div>
+                </form>
+                <div id="uploadStatus"></div>
+            </div>
             <?php endif; ?>
-        </div>
 
-        <?php if ($is_admin): ?>
-        <div class="admin-section">
-            <h2>Administration des permissions</h2>
-            <p>En tant qu'administrateur, vous pouvez gérer les permissions des utilisateurs.</p>
-            <a href="admin_permissions.php" class="btn btn-primary">Gérer les permissions</a>
-            <a href="admin_log.php" class="btn btn-primary">Gérer les logs</a>
+            <div class="file-list">
+                <?php if (isset($data['files']) && !empty($data['files'])): ?>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nom du fichier</th>
+                                <th>Taille</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($data['files'] as $file): ?>
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file"></i>
+                                    <?= htmlspecialchars($file['name']) ?>
+                                </td>
+                                <td><?= htmlspecialchars(formatSize($file['size'])) ?></td>
+                                <td style="white-space: nowrap;">
+                                    <a href="<?= htmlspecialchars($file['url']) ?>" class="btn btn-primary" style="margin-right: 0.5rem;">
+                                        <i class="fas fa-download"></i> Télécharger
+                                    </a>
+                                    <?php if ($is_admin): ?>
+                                    <button class="btn btn-secondary" onclick="deleteFile(<?= (int)$file['id'] ?>)">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="alert" style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-info-circle" style="font-size: 2rem; color: var(--primary-color);"></i>
+                        <p style="margin-top: 1rem;">Aucun fichier disponible</p>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-        <?php endif; ?>
-
-        <a href="logout.php" class="logout-btn">Déconnexion</a>
     </div>
 
     <script>

@@ -27,19 +27,35 @@ $auth_request_url = $auth_url . "?" . http_build_query([
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accès aux fichiers</title>
-    <link rel="stylesheet" href="css/index.css">
+    <title>QuickView - Connexion</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <h1>Bienvenue</h1>
-        <p>Accédez à vos fichiers sécurisés</p>
-        
-        <div class="login-button-container">
-            <a href="<?= htmlspecialchars($auth_request_url) ?>" class="login-button">
-                Login avec SecureAuth
-            </a>
+        <div class="card" style="max-width: 500px; margin: 80px auto;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <i class="fas fa-file-search" style="font-size: 4rem; color: var(--primary-color);"></i>
+                <h1 style="margin-top: 1rem; color: var(--primary-color);">QuickView</h1>
+                <p style="color: var(--secondary-color); margin-top: 1rem; font-size: 1.2rem;">
+                    Visualisez et gérez vos fichiers de manière rapide et sécurisée
+                </p>
+            </div>
+            
+            <div class="card" style="background: var(--light-gray); padding: 2rem; text-align: center; margin-top: 2rem;">
+                <h2 style="margin-bottom: 1.5rem;">Connexion</h2>
+                <p style="margin-bottom: 2rem;">
+                    Connectez-vous pour accéder à vos documents sécurisés
+                </p>
+                <a href="<?= htmlspecialchars($auth_request_url) ?>" class="btn btn-primary" style="display: inline-block; min-width: 200px; font-size: 1.1rem;">
+                    <i class="fas fa-sign-in-alt"></i> Se connecter avec SecureAuth
+                </a>
+            </div>
         </div>
     </div>
+
+    <footer style="text-align: center; padding: 2rem 0; color: var(--secondary-color); background-color: var(--white); margin-top: 3rem; position: fixed; bottom: 0; width: 100%;">
+        <p>&copy; 2024 QuickView. Tous droits réservés.</p>
+    </footer>
 </body>
 </html>
