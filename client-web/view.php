@@ -6,6 +6,26 @@ include_once 'variable.php';
 ini_set('display_errors', 0);
 error_reporting(0);
 
+// Fonctions de sécurité
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCSRFToken($token) {
+    if (!isset($_SESSION['csrf_token']) || !$token) {
+        return false;
+    }
+    
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function sanitizeOutput($data) {
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+}
+
 // Vérification de l'authentification
 if (!isset($_SESSION['access_token']) || !isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
     header("Location: logout.php");
@@ -47,6 +67,8 @@ if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
     }
 }
 
+// Générer un token CSRF pour les formulaires
+$csrf_token = generateCSRFToken();
 
 // Récupérer les informations sur les fichiers
 $resource_url = $domainenameprressources . "resource.php?access_token=" . urlencode($_SESSION['access_token']);
@@ -108,6 +130,7 @@ function formatSize($size) {
             <div class="card" style="background: var(--light-gray); margin-bottom: 2rem;">
                 <h3><i class="fas fa-upload"></i> Téléverser un fichier</h3>
                 <form id="uploadForm" enctype="multipart/form-data" style="margin-top: 1rem;">
+                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                     <div class="form-group" style="display: flex; gap: 1rem; align-items: center;">
                         <input type="file" name="file" required class="form-input" style="flex: 1;">
                         <button type="submit" class="btn btn-primary">
@@ -170,7 +193,7 @@ function formatSize($size) {
         const statusDiv = document.getElementById('uploadStatus');
         statusDiv.innerHTML = '<p class="info">Téléversement en cours...</p>';
 
-        fetch('http://localhost/oauth2-project/protected-resources/upload_file.php?access_token=<?= urlencode($_SESSION['access_token']) ?>', {
+        fetch('<?= $domainenameprressources ?>upload_file.php?access_token=<?= urlencode($_SESSION['access_token']) ?>', {
             method: 'POST',
             body: formData
         })
@@ -180,7 +203,7 @@ function formatSize($size) {
                 statusDiv.innerHTML = '<p class="success-message">Fichier téléversé avec succès!</p>';
                 setTimeout(() => location.reload(), 1000);
             } else {
-                statusDiv.innerHTML = '<p class="error-message">Erreur lors du téléversement.</p>';
+                statusDiv.innerHTML = '<p class="error-message">Erreur lors du téléversement: ' + (data.error || 'Erreur inconnue') + '</p>';
             }
         })
         .catch(() => {
@@ -192,15 +215,19 @@ function formatSize($size) {
     function deleteFile(fileId) {
         if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier?')) return;
 
-        fetch('http://localhost/oauth2-project/protected-resources/delete.php?access_token=<?= urlencode($_SESSION['access_token']) ?>&file_id=' + fileId, {
-            method: 'DELETE'
+        const formData = new FormData();
+        formData.append('csrf_token', '<?= $csrf_token ?>');
+
+        fetch('<?= $domainenameprressources ?>delete.php?access_token=<?= urlencode($_SESSION['access_token']) ?>&file_id=' + fileId, {
+            method: 'POST',
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erreur lors de la suppression.');
+                alert('Erreur lors de la suppression: ' + (data.error || 'Erreur inconnue'));
             }
         })
         .catch(() => {

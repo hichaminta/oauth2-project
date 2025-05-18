@@ -1,6 +1,5 @@
-
-     <?php 
-     function logAccess($user_id = null, $file_id = null, $filename = null, $success = false, $message = '', $action) {
+<?php 
+function logAccess($user_id = null, $file_id = null, $filename = null, $success = false, $message = '', $action) {
     global $pdo;
     
     // Récupérer l'adresse IP du client
@@ -27,6 +26,39 @@
         ]);
     } catch (PDOException $e) {
         // En cas d'erreur avec la journalisation, on continue quand même le script
-        error_log('Erreur de journalisation: ' . $e->getMessage());
+        error_log('Erreur de journalisation');
     }
+}
+
+/**
+ * Génère un token CSRF et le stocke dans la session
+ * @return string Le token CSRF généré
+ */
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Vérifie si le token CSRF fourni correspond à celui dans la session
+ * @param string $token Le token à vérifier
+ * @return bool True si le token est valide, false sinon
+ */
+function validateCSRFToken($token) {
+    if (!isset($_SESSION['csrf_token']) || !$token) {
+        return false;
+    }
+    
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Nettoie et échappe une entrée pour prévenir les attaques XSS
+ * @param string $data Les données à nettoyer
+ * @return string Les données nettoyées
+ */
+function sanitizeOutput($data) {
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
 }

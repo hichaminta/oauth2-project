@@ -116,8 +116,8 @@ function publishToBlockchain($stream, $data) {
     curl_close($ch);
     
     if ($error) {
-        error_log("Blockchain error: " . $error);
-        return ['error' => $error];
+        error_log("Blockchain error");
+        return ['error' => 'Erreur de connexion blockchain'];
     }
     
     return json_decode($response, true);

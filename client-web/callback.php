@@ -45,7 +45,6 @@ if (isset($data['access_token'])) {
     header("Location: view.php");
     exit;
 } else {
-    echo "Erreur lors de la récupération du jeton :";
-    var_dump($data);
+    echo "Erreur lors de la récupération du jeton. Veuillez réessayer.";
 }
 ?>

@@ -134,7 +134,7 @@ try {
                 } else {
                     $stmt = $conn->prepare("INSERT INTO file_permissions (file_id, user_id, can_read, can_write) VALUES (?, ?, ?, ?)");
                     $result = $stmt->execute([$file_id, $target_user_id, $can_read, $can_write]);
-                    logAccess($user_id, $file_id, null, $result, $result ? 'Permission ajoutée' : 'Échec de l’ajout', 'add_permission');
+                    logAccess($user_id, $file_id, null, $result, $result ? 'Permission ajoutée' : 'Échec de l\'ajout', 'add_permission');
                     echo json_encode(['success' => $result]);
                 }
             } else {
@@ -194,13 +194,13 @@ try {
     }
 
 } catch (PDOException $e) {
-    logAccess($user_id ?? null, null, null, false, 'Erreur PDO: ' . $e->getMessage(), 'exception');
+    logAccess($user_id ?? null, null, null, false, 'Erreur PDO', 'exception');
     header('HTTP/1.1 500 Internal Server Error');
-    echo json_encode(['error' => 'Erreur de base de données: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erreur de base de données']);
     exit();
 } catch (Exception $e) {
-    logAccess($user_id ?? null, null, null, false, 'Erreur générale: ' . $e->getMessage(), 'exception');
+    logAccess($user_id ?? null, null, null, false, 'Erreur générale', 'exception');
     header('HTTP/1.1 500 Internal Server Error');
-    echo json_encode(['error' => 'Erreur: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erreur interne du serveur']);
     exit();
 }

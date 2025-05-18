@@ -28,98 +28,113 @@ $mode = isset($_GET['mode']) ? $_GET['mode'] : 'login';
 
 // Traitement du formulaire d'inscription
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $registration_error = null;
-    
-    // Vérifier si le nom d'utilisateur ou l'email existe déjà
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
-    $stmt->execute([$username, $email]);
-    $exists = $stmt->fetchColumn();
-    
-    if ($exists) {
-        $registration_error = "Ce nom d'utilisateur ou cette adresse email est déjà utilisé(e).";
-    } 
-    elseif ($password !== $confirm_password) {
-        $registration_error = "Les mots de passe ne correspondent pas.";
-    }
-    elseif (strlen($password) < 6) {
-        $registration_error = "Le mot de passe doit contenir au moins 6 caractères.";
-    } 
-    else {
-        // Hacher le mot de passe
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+    // Vérifier le token CSRF
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $registration_error = "Erreur de sécurité, veuillez réessayer.";
+    } else {
+        $username = $_POST['username'];
+        $email = $_POST['email'];
+        $password = $_POST['password'];
+        $confirm_password = $_POST['confirm_password'];
+        $registration_error = null;
         
-        try {
-            $pdo->beginTransaction();
+        // Vérifier si le nom d'utilisateur ou l'email existe déjà
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
+        $exists = $stmt->fetchColumn();
+        
+        if ($exists) {
+            $registration_error = "Ce nom d'utilisateur ou cette adresse email est déjà utilisé(e).";
+        } 
+        elseif ($password !== $confirm_password) {
+            $registration_error = "Les mots de passe ne correspondent pas.";
+        }
+        elseif (strlen($password) < 6) {
+            $registration_error = "Le mot de passe doit contenir au moins 6 caractères.";
+        } 
+        else {
+            // Hacher le mot de passe
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             
-            // Insérer le nouvel utilisateur
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-            $stmt->execute([$username, $email, $hashed_password]);
-            $user_id = $pdo->lastInsertId();
-            
-            // Ajouter les rôles par défaut
-            $stmt = $pdo->prepare("INSERT INTO user_roles (user_id, role, available_scopes) VALUES (?, ?, ?)");
-            $stmt->execute([$user_id, 'user', 'read']);
-            
-            $pdo->commit();
-            
-            // Préserver les paramètres OAuth2 originaux
-            $params = array(
-                'client_id' => $client_id,
-                'redirect_uri' => $redirect_uri,
-                'response_type' => $response_type,
-                'scope' => $scope,
-                'registration_success' => 1
-            );
-            
-            // Rediriger vers la page de connexion avec les paramètres préservés
-            header("Location: " . $_SERVER['PHP_SELF'] . "?" . http_build_query($params));
-            exit;
-        } catch (PDOException $e) {
-            $pdo->rollBack();
-            $registration_error = "Erreur lors de l'inscription: " . $e->getMessage();
+            try {
+                $pdo->beginTransaction();
+                
+                // Insérer le nouvel utilisateur
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+                $stmt->execute([$username, $email, $hashed_password]);
+                $user_id = $pdo->lastInsertId();
+                
+                // Ajouter les rôles par défaut
+                $stmt = $pdo->prepare("INSERT INTO user_roles (user_id, role, available_scopes) VALUES (?, ?, ?)");
+                $stmt->execute([$user_id, 'user', 'read']);
+                
+                $pdo->commit();
+                
+                // Préserver les paramètres OAuth2 originaux
+                $params = array(
+                    'client_id' => $client_id,
+                    'redirect_uri' => $redirect_uri,
+                    'response_type' => $response_type,
+                    'scope' => $scope,
+                    'registration_success' => 1
+                );
+                
+                // Rediriger vers la page de connexion avec les paramètres préservés
+                header("Location: " . $_SERVER['PHP_SELF'] . "?" . http_build_query($params));
+                exit;
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+                $registration_error = "Erreur lors de l'inscription";
+            }
         }
     }
 }
 
 // Traitement du formulaire de connexion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    $stmt = $pdo->prepare("SELECT id, username, password FROM users WHERE username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
-
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        logAccess($user['id'], null, null, true, 'Connexion réussie', 'login');
-
-        $stmt = $pdo->prepare("SELECT role, available_scopes FROM user_roles WHERE user_id = ?");
-        $stmt->execute([$user['id']]);
-        $role_data = $stmt->fetch();
-
-        if ($role_data) {
-            $_SESSION['role'] = $role_data['role'];
-            $_SESSION['available_scopes'] = $role_data['available_scopes'];
-        } else {
-            $_SESSION['role'] = 'user';
-            $_SESSION['available_scopes'] = 'read';
-        }
-
-        header("Location: " . $_SERVER['PHP_SELF'] . "?" . http_build_query($_GET));
-        exit;
+    // Vérifier le token CSRF
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $error_message = "Erreur de sécurité, veuillez réessayer.";
     } else {
-        $error_message = "Identifiants incorrects.";
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+
+        $stmt = $pdo->prepare("SELECT id, username, password FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            logAccess($user['id'], null, null, true, 'Connexion réussie', 'login');
+
+            $stmt = $pdo->prepare("SELECT role, available_scopes FROM user_roles WHERE user_id = ?");
+            $stmt->execute([$user['id']]);
+            $role_data = $stmt->fetch();
+
+            if ($role_data) {
+                $_SESSION['role'] = $role_data['role'];
+                $_SESSION['available_scopes'] = $role_data['available_scopes'];
+            } else {
+                $_SESSION['role'] = 'user';
+                $_SESSION['available_scopes'] = 'read';
+            }
+
+            header("Location: " . $_SERVER['PHP_SELF'] . "?" . http_build_query($_GET));
+            exit;
+        } else {
+            $error_message = "Identifiants incorrects.";
+        }
     }
 }
 
 // Traitement de l'autorisation des scopes
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['authorize'])) {
+    // Vérifier le token CSRF
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        die("Erreur de sécurité, veuillez réessayer.");
+    }
+    
     $authorized_scopes = [];
     $requested_scopes = explode(' ', $scope);
     $available_scopes = explode(' ', $_SESSION['available_scopes']);
@@ -153,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['authorize'])) {
         header("Location: $redirect_uri?code=$code");
         exit;
     } catch (PDOException $e) {
-        die("Erreur lors de l'insertion du code d'autorisation: " . $e->getMessage());
+        die("Erreur lors de l'insertion du code d'autorisation");
     }
 }
 
@@ -161,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['authorize'])) {
 if (isset($_SESSION['user_id'])) {
     $available_scopes = explode(' ', $_SESSION['available_scopes']);
     $valid_scopes = $available_scopes;
+    $csrf_token = generateCSRFToken();
 
     $scope_descriptions = [
         'read' => 'Voir la liste des fichiers',
@@ -295,6 +311,10 @@ if (isset($_SESSION['user_id'])) {
     </style>
     <!-- Ajout de Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- En-têtes de sécurité pour XSS -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self'">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
 </head>
 <body>
     <div class="container">
@@ -305,26 +325,27 @@ if (isset($_SESSION['user_id'])) {
         
         <div class="user-info">
             <i class="fas fa-user-circle"></i> 
-            Connecté en tant que <strong><?= htmlspecialchars($_SESSION['username']) ?></strong>
-            <span class="badge"><?= htmlspecialchars($_SESSION['role']) ?></span>
+            Connecté en tant que <strong><?= sanitizeOutput($_SESSION['username']) ?></strong>
+            <span class="badge"><?= sanitizeOutput($_SESSION['role']) ?></span>
         </div>
         
-        <h2>Autoriser l'accès à <?= htmlspecialchars($client_id) ?></h2>
+        <h2>Autoriser l'accès à <?= sanitizeOutput($client_id) ?></h2>
         
         <form method="POST" action="<?= $_SERVER['PHP_SELF'] ?>?<?= http_build_query($_GET) ?>">
+            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
             <p>Cette application demande les autorisations suivantes :</p>
             
             <?php foreach ($valid_scopes as $s): ?>
             <div class="scope-container">
                 <label>
-                    <input type="checkbox" name="scope_<?= htmlspecialchars($s) ?>" value="1" checked>
-                    <strong><?= htmlspecialchars(ucfirst($s)) ?></strong>
+                    <input type="checkbox" name="scope_<?= sanitizeOutput($s) ?>" value="1" checked>
+                    <strong><?= sanitizeOutput(ucfirst($s)) ?></strong>
                 </label>
                 <span class="scope-description">
                     <i class="fas fa-info-circle"></i> 
-                    <?= htmlspecialchars($scope_descriptions[$s] ?? 'Accès sans description') ?>
+                    <?= sanitizeOutput($scope_descriptions[$s] ?? 'Accès sans description') ?>
                 </span>
-                <input type="hidden" name="all_scopes[]" value="<?= htmlspecialchars($s) ?>">
+                <input type="hidden" name="all_scopes[]" value="<?= sanitizeOutput($s) ?>">
             </div>
             <?php endforeach; ?>
             
@@ -345,6 +366,7 @@ if (isset($_SESSION['user_id'])) {
     // Afficher le formulaire d'inscription ou de connexion selon le mode
     if ($mode === 'register') {
         // Formulaire d'inscription
+        $csrf_token = generateCSRFToken();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -521,16 +543,17 @@ if (isset($_SESSION['user_id'])) {
         </div>
         
         <h2>Créer un compte</h2>
-        <p>Pour accéder à <strong><?= htmlspecialchars($client_id) ?></strong></p>
+        <p>Pour accéder à <strong><?= sanitizeOutput($client_id) ?></strong></p>
         
         <?php if (isset($registration_error)): ?>
         <div class="error-message">
-            <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($registration_error) ?>
+            <i class="fas fa-exclamation-circle"></i> <?= sanitizeOutput($registration_error) ?>
         </div>
         <?php endif; ?>
         
         <form method="POST" action="<?= $_SERVER['PHP_SELF'] ?>?<?= http_build_query($_GET) ?>">
             <input type="hidden" name="mode" value="register">
+            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
             <div class="form-group">
                 <label for="username"><i class="fas fa-user"></i> Nom d'utilisateur:</label>
                 <input type="text" id="username" name="username" required>
@@ -566,6 +589,7 @@ if (isset($_SESSION['user_id'])) {
 <?php
     } else {
         // Formulaire de connexion
+        $csrf_token = generateCSRFToken();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -731,6 +755,10 @@ if (isset($_SESSION['user_id'])) {
     </style>
     <!-- Ajout de Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- En-têtes de sécurité pour XSS -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self'">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
 </head>
 <body>
     <div class="container">
@@ -740,11 +768,11 @@ if (isset($_SESSION['user_id'])) {
         </div>
         
         <h2>Connexion requise</h2>
-        <p>Pour autoriser l'accès à <strong><?= htmlspecialchars($client_id) ?></strong></p>
+        <p>Pour autoriser l'accès à <strong><?= sanitizeOutput($client_id) ?></strong></p>
         
         <?php if (isset($error_message)): ?>
         <div class="error-message">
-            <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error_message) ?>
+            <i class="fas fa-exclamation-circle"></i> <?= sanitizeOutput($error_message) ?>
         </div>
         <?php endif; ?>
         
@@ -755,6 +783,7 @@ if (isset($_SESSION['user_id'])) {
         <?php endif; ?>
         
         <form method="POST" action="<?= $_SERVER['PHP_SELF'] ?>?<?= http_build_query($_GET) ?>">
+            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
             <div class="form-group">
                 <label for="username"><i class="fas fa-user"></i> Nom d'utilisateur:</label>
                 <input type="text" id="username" name="username" required>

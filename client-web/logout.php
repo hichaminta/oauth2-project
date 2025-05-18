@@ -22,13 +22,10 @@ if ($accessToken && $clientId && $clientSecret) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/x-www-form-urlencoded',
-        // (optionnel) restreindre l’origine si besoin
-        //'Origin: https://votre-application-client.com'
     ]);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-var_dump($response);
 
     // (optionnel) vous pouvez logger $response et $httpCode pour audit
 }

@@ -1,4 +1,5 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 
 // Fonction de journalisation des accès
@@ -54,6 +55,15 @@ require_once __DIR__ . '/../server-oauth/database.php';
 
 // Traitement du téléversement du fichier
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+    // Vérifier le token CSRF
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $message = 'Erreur de sécurité CSRF.';
+        logAccess($user_id, null, null, false, $message, action:'upload');
+        http_response_code(403);
+        echo json_encode(['error' => $message]);
+        exit;
+    }
+    
     $file = $_FILES['file'];
     $filename = basename($file['name']);
     

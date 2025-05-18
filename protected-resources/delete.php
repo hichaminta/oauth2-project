@@ -1,4 +1,5 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 
 // Fonction de journalisation des accès
@@ -6,10 +7,21 @@ include_once 'fonction.php' ;
 // Vérifier si le jeton d'accès et l'ID du fichier sont fournis
 if (!isset($_GET['access_token']) || !isset($_GET['file_id'])) {
     $message = 'Jeton ou ID de fichier manquant.';
-    logAccess(null, $_GET['file_id'] ?? null, null, false, $message,action:'delete',);
+    logAccess(null, $_GET['file_id'] ?? null, null, false, $message,action:'delete');
     http_response_code(400);
     echo json_encode(['error' => $message]);
     exit;
+}
+
+// Vérifier le token CSRF pour les requêtes POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
+        $message = 'Erreur de sécurité CSRF.';
+        logAccess(null, $_GET['file_id'] ?? null, null, false, $message, action:'delete');
+        http_response_code(403);
+        echo json_encode(['error' => $message]);
+        exit;
+    }
 }
 
 $access_token = $_GET['access_token'];
