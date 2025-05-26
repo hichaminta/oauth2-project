@@ -232,6 +232,36 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
         const searchFilter = document.getElementById('searchFilter');
         const refreshBtn = document.getElementById('refreshBtn');
         const loadingIndicator = document.getElementById('loading-indicator');
+        const apiUrl = "http://localhost/oauth2-project/protected-resources/get_log_by_blockchain.php?access_token=<?= $_SESSION['access_token'] ?>";
+
+        // Récupérer le hash de l'URL si présent
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashFilter = urlParams.get('hash');
+
+        // Si un hash est présent dans l'URL, le mettre dans le champ de recherche
+        if (hashFilter) {
+            searchFilter.value = hashFilter;
+            // Désactiver les autres filtres
+            actionFilter.disabled = true;
+            statusFilter.disabled = true;
+            dateFilter.disabled = true;
+            // Ajouter un message indiquant le filtrage par hash
+            const filtersDiv = document.querySelector('.filters');
+            const hashMessage = document.createElement('div');
+            hashMessage.className = 'alert alert-info';
+            hashMessage.innerHTML = `
+                <i class="fas fa-info-circle"></i>
+                Affichage des logs pour le hash: <strong>${hashFilter}</strong>
+                <button onclick="clearHashFilter()" class="btn btn-secondary" style="margin-left: 1rem;">
+                    <i class="fas fa-times"></i> Effacer le filtre
+                </button>
+            `;
+            filtersDiv.insertBefore(hashMessage, filtersDiv.firstChild);
+        }
+
+        function clearHashFilter() {
+            window.location.href = 'blockchain_logs.php';
+        }
 
         function formatDate(timestamp) {
             return new Date(timestamp * 1000).toLocaleString('fr-FR', {
@@ -306,6 +336,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                 const logMessage = (log.data.message || '').toLowerCase();
                 const logUsername = (log.data.username || '').toLowerCase();
                 const logFilename = (log.data.filename || '').toLowerCase();
+                const logHash = (log.hash || '').toLowerCase();
 
                 const matchesAction = !action || logAction === action;
                 const matchesStatus = !status || 
@@ -315,7 +346,8 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                 const matchesSearch = !search || 
                     logMessage.includes(search) || 
                     logUsername.includes(search) || 
-                    logFilename.includes(search);
+                    logFilename.includes(search) ||
+                    logHash.includes(search);
 
                 return matchesAction && matchesStatus && matchesDate && matchesSearch;
             });

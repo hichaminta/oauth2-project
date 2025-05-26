@@ -150,6 +150,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                             <th>Fichier ID</th>
                             <th>Nom de fichier</th>
                             <th>Action</th>
+                            <th>Blockchain</th>
                             <th>Succès</th>
                             <th>Message</th>
                         </tr>
@@ -188,6 +189,12 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
         }
 
         function createLogRow(log) {
+            const blockchainLink = log.blockchain_hash ? `
+                <a href="blockchain_logs.php?hash=${log.blockchain_hash}" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">
+                    <i class="fas fa-link"></i> Voir
+                </a>
+            ` : '<span class="text-muted">-</span>';
+
             return `
                 <tr>
                     <td>${log.id}</td>
@@ -197,6 +204,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                     <td>${log.file_id}</td>
                     <td><i class="fas fa-file"></i> ${log.filename}</td>
                     <td><span class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">${log.action}</span></td>
+                    <td>${blockchainLink}</td>
                     <td>
                         ${log.success 
                             ? '<i class="fas fa-check" style="color: green;"></i>' 
