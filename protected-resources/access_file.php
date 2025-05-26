@@ -8,7 +8,7 @@ include_once 'fonction.php' ;
 // Vérifier si le jeton d'accès et le nom de fichier sont fournis
 if (!isset($_GET['access_token']) || !isset($_GET['file'])) {
     $message = 'Jeton ou fichier manquant.';
-    logAccess(null, null, $_GET['file'] ?? null, false, $message,action:'Telechargement');
+    logAccess(null, null, $_GET['file'] ?? null, false, $message, 'download');
     http_response_code(400);
     echo json_encode(['error' => $message]);
     exit;
@@ -23,7 +23,7 @@ $response = @file_get_contents($validation_url);
 
 if ($response === FALSE) {
     $message = 'Impossible de vérifier le token.';
-    logAccess(null, null, $filename, false, $message,action:'Telechargement');
+    logAccess(null, null, $filename, false, $message, 'download');
     http_response_code(500);
     echo json_encode(['error' => $message]);
     exit;
@@ -33,7 +33,7 @@ $data = json_decode($response, true);
 
 if (!isset($data['active']) || !$data['active']) {
     $message = 'Jeton invalide ou expiré.';
-    logAccess(null, null, $filename, false, $message,action:'Telechargement');
+    logAccess(null, null, $filename, false, $message, 'download');
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -58,7 +58,7 @@ if (in_array('admin', $scopes)) {
     $stmt->execute([$filename]);
 } else if (!in_array('read', $scopes)) {
     $message = 'Scope insuffisant pour accéder au fichier.';
-    logAccess($user_id, null, $filename, false, $message,action:'Telechargement');
+    logAccess($user_id, null, $filename, false, $message, 'download');
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -71,7 +71,7 @@ $file = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$file) {
     $message = 'Fichier non trouvé ou accès non autorisé.';
-    logAccess($user_id, null, $filename, false, $message,action:'Telechargement');
+    logAccess($user_id, null, $filename, false, $message, 'download');
     http_response_code(404);
     echo json_encode(['error' => $message]);
     exit;
@@ -81,7 +81,14 @@ if (!$file) {
 $file_id = $file['id'];
 
 // Journaliser l'accès avant le téléchargement
-logAccess($user_id, $file_id, $filename, true, 'Téléchargement du fichier initié', 'download');
+$init_message = sprintf(
+    'Téléchargement du fichier initié (ID: %d, Nom: %s, Taille: %s, Chemin: %s)',
+    $file_id,
+    $filename,
+    number_format($file['size'] / 1024, 2) . ' KB',
+    $file['path']
+);
+logAccess($user_id, $file_id, $filename, true, $init_message, 'download');
 
 // Préparer le chemin du fichier
 $file_path = $file['path'];
@@ -89,27 +96,21 @@ $file_path = $file['path'];
 // Vérifier l'existence du fichier
 if (!file_exists($file_path) || !is_file($file_path)) {
     $message = 'Fichier physique non trouvé.';
-    logAccess($user_id, $file_id, $filename, false, $message,action:'Telechargement');
+    logAccess($user_id, $file_id, $filename, false, $message, 'download');
     http_response_code(404);
     echo json_encode(['error' => $message]);
     exit;
 }
 
 // Journaliser le succès avant l'envoi
-logAccess($user_id, $file_id, $filename, true, 'Téléchargement du fichier réussi', 'download_complete');
-$acces_file = [
-    'timestamp' => time(),
-    'user_id' => $user_id,
-    'file_id' => $file_id,
-    'filename' => $filename,
-    'action' => 'Telechargement',
-    'success' => true,
-    'message' => 'Téléchargement du fichier réussi',
-    'ip_address' => $_SERVER['REMOTE_ADDR'],
-    'access_token' => $access_token,
-    'scope' => $data['scope'] ?? ''
-];
-$result = publishToBlockchain('access_file_log', $acces_file);
+$success_message = sprintf(
+    'Téléchargement du fichier réussi (ID: %d, Nom: %s, Taille: %s, Chemin: %s)',
+    $file_id,
+    $filename,
+    number_format($file['size'] / 1024, 2) . ' KB',
+    $file['path']
+);
+logAccess($user_id, $file_id, $filename, true, $success_message, 'download_complete');
 
 // Envoyer le fichier
 header('Content-Type: application/octet-stream');

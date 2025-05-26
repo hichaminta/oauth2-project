@@ -46,4 +46,9 @@ Deny from all
     SetEnvIf Request_URI "^/oauth2-project/protected-resources/blokchaine_get_api.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
     Allow from env=ACCESS_GRANTED
 </Files>
+<Files "get_log_by_blockchain.php">
+    SetEnvIf Referer "^http://localhost/oauth2-project/client-web/" ACCESS_GRANTED
+    SetEnvIf Request_URI "^/oauth2-project/protected-resources/get_log_by_blockchain.php.*access_token=[a-f0-9]{64}$" ACCESS_GRANTED
+    Allow from env=ACCESS_GRANTED
+</Files>
 
