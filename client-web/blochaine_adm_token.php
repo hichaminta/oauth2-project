@@ -1,3 +1,31 @@
+<?php
+session_start();
+include_once 'variable.php';
+if (!isset($_SESSION['access_token'])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Vérifier si le token est encore valide
+if (!isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
+    header("Location: logout.php");
+    exit();
+}
+if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
+    header("Location: view.php");
+    exit();
+}
+
+// Vérifier si l'utilisateur a le scope admin
+$resource_url = $domainenameprressources . "resource.php?access_token=" . $_SESSION['access_token'];
+$response = file_get_contents($resource_url);
+$data = json_decode($response, true);
+
+if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'])) {
+    header("Location: view.php");
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -46,6 +74,7 @@
                 <a href="admin_permissions.php" class="nav-link">Permissions</a>
                 <a href="admin_log.php" class="nav-link">Logs</a>
                 <a href="blochaine_adm_token.php" class="nav-link active">Blockchain</a>
+                <a href="blockchain_logs.php" class="nav-link">Logs Blockchain</a>
                 <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
             </nav>
         </div>

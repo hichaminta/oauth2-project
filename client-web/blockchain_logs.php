@@ -1,8 +1,29 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /oauth2-project/login.php');
-    exit;
+include_once 'variable.php';
+if (!isset($_SESSION['access_token'])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Vérifier si le token est encore valide
+if (!isset($_SESSION['token_created']) || !isset($_SESSION['expires_in'])) {
+    header("Location: logout.php");
+    exit();
+}
+if (time() > $_SESSION['token_created'] + $_SESSION['expires_in']) {
+    header("Location: view.php");
+    exit();
+}
+
+// Vérifier si l'utilisateur a le scope admin
+$resource_url = $domainenameprressources . "resource.php?access_token=" . $_SESSION['access_token'];
+$response = file_get_contents($resource_url);
+$data = json_decode($response, true);
+
+if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'])) {
+    header("Location: view.php");
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -10,7 +31,7 @@ if (!isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs Blockchain - Système de Gestion de Fichiers</title>
+    <title>QuickView - Logs Blockchain</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -138,15 +159,23 @@ if (!isset($_SESSION['user_id'])) {
             <h1>QuickView</h1>
             <nav class="nav-menu">
                 <a href="view.php" class="nav-link">Mes fichiers</a>
-                <a href="blockchain_logs.php" class="nav-link active">Logs</a>
+                <a href="admin_permissions.php" class="nav-link">Permissions</a>
+                <a href="admin_log.php" class="nav-link">Logs</a>
+                <a href="blochaine_adm_token.php" class="nav-link">Blockchain</a>
+                <a href="blockchain_logs.php" class="nav-link active">Logs Blockchain</a>
                 <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
             </nav>
         </div>
     </div>
 
     <div class="container">
-        <div class="card">
-            <h2><i class="fas fa-history"></i> Logs Blockchain</h2>
+        <div class="card" style="margin-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2><i class="fas fa-history"></i> Logs Blockchain</h2>
+                <div id="loading-indicator">
+                    <i class="fas fa-spinner fa-spin"></i> Chargement...
+                </div>
+            </div>
 
             <div class="filters">
                 <div class="form-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
@@ -202,6 +231,7 @@ if (!isset($_SESSION['user_id'])) {
         const dateFilter = document.getElementById('dateFilter');
         const searchFilter = document.getElementById('searchFilter');
         const refreshBtn = document.getElementById('refreshBtn');
+        const loadingIndicator = document.getElementById('loading-indicator');
 
         function formatDate(timestamp) {
             return new Date(timestamp * 1000).toLocaleString('fr-FR', {
@@ -309,6 +339,7 @@ if (!isset($_SESSION['user_id'])) {
 
         async function loadLogs() {
             try {
+                loadingIndicator.style.display = 'block';
                 logsContainer.innerHTML = `
                     <div class="loading">
                         <div class="spinner-border" role="status">
@@ -334,6 +365,8 @@ if (!isset($_SESSION['user_id'])) {
                         Erreur lors du chargement des logs: ${error.message}
                     </div>
                 `;
+            } finally {
+                loadingIndicator.style.display = 'none';
             }
         }
 

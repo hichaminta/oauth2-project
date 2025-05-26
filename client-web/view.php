@@ -105,6 +105,8 @@ function formatSize($size) {
                 <?php if ($is_admin): ?>
                 <a href="admin_permissions.php" class="nav-link">Permissions</a>
                 <a href="admin_log.php" class="nav-link">Logs</a>
+                <a href="blochaine_adm_token.php" class="nav-link">Blockchain</a>
+                <a href="blockchain_logs.php" class="nav-link">Logs Blockchain</a>
                 <?php endif; ?>
                 <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
             </nav>

@@ -168,6 +168,8 @@ $permissions = $permissions_data['permissions'] ?? [];
                 <a href="view.php" class="nav-link">Mes fichiers</a>
                 <a href="admin_permissions.php" class="nav-link active">Permissions</a>
                 <a href="admin_log.php" class="nav-link">Logs</a>
+                <a href="blochaine_adm_token.php" class="nav-link">Blockchain</a>
+                <a href="blockchain_logs.php" class="nav-link">Logs Blockchain</a>
                 <a href="logout.php" class="nav-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
             </nav>
         </div>
