@@ -77,7 +77,7 @@ $token_data = [
 ];
 
 // Register token on blockchain
-$result = publishToBlockchain('chain_oauth_token', $token_data);
+$result = publishToBlockchain('chain_oauth_token_nv', $token_data);
 
 // Return to client
 echo json_encode([

@@ -11,10 +11,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 // Get optional parameters
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
 $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
-$stream = isset($_GET['stream']) ? $_GET['stream'] : 'chain_oauth_token';
+$stream = isset($_GET['stream']) ? $_GET['stream'] : 'chain_oauth_token_nv';
+$searchToken = isset($_GET['token']) ? $_GET['token'] : '';
 
 // Get tokens from blockchain
 $tokens = getTokensFromBlockchain($stream, $limit, $offset);
+
+// Filter by token if search token is provided
+if (!empty($searchToken)) {
+    $tokens = array_filter($tokens, function($item) use ($searchToken) {
+        if (isset($item['decoded_data']['user_token'])) {
+            return $item['decoded_data']['user_token'] === $searchToken;
+        }
+        return false;
+    });
+    $tokens = array_values($tokens); // Reindex array
+}
 
 // Return response
 echo json_encode($tokens);

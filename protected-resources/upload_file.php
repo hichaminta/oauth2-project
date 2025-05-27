@@ -8,7 +8,7 @@ include_once 'fonction.php' ;
 // Vérifier si le jeton d'accès est présent
 if (!isset($_GET['access_token'])) {
     $message = 'Jeton d\'accès manquant.';
-    logAccess(null, null, null, false, $message, 'upload');
+    logAccess(null, null, null, false, $message, 'upload', null);
     http_response_code(401);
     echo json_encode(['error' => $message]);
     exit;
@@ -22,7 +22,7 @@ $response = @file_get_contents($validation_url);
 
 if ($response === FALSE) {
     $message = 'Impossible de vérifier le token.';
-    logAccess(null, null, null, false, $message, 'upload');
+    logAccess(null, null, null, false, $message, 'upload', $access_token);
     http_response_code(500);
     echo json_encode(['error' => $message]);
     exit;
@@ -32,7 +32,7 @@ $data = json_decode($response, true);
 
 if (!isset($data['active']) || !$data['active']) {
     $message = 'Jeton invalide ou expiré.';
-    logAccess(null, null, null, false, $message, 'upload');
+    logAccess(null, null, null, false, $message, 'upload', $access_token);
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -44,7 +44,7 @@ $user_id = $data['user_id'];
 
 if (!in_array('write', $scopes) && !in_array('admin', $scopes)) {
     $message = 'Scope insuffisant pour téléverser des fichiers.';
-    logAccess($user_id, null, null, false, $message, 'upload');
+    logAccess($user_id, null, null, false, $message, 'upload', $access_token);
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     // Vérifier le token CSRF
     if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
         $message = 'Erreur de sécurité CSRF.';
-        logAccess($user_id, null, null, false, $message, 'upload');
+        logAccess($user_id, null, null, false, $message, 'upload', $access_token);
         http_response_code(403);
         echo json_encode(['error' => $message]);
         exit;
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     $filename = basename($file['name']);
     
     // Journaliser le début de la tentative d'upload
-    logAccess($user_id, null, $filename, true, 'Tentative de téléversement', 'upload_start');
+    logAccess($user_id, null, $filename, true, 'Tentative de téléversement', 'upload_start', $access_token);
     
     // Vérifier les erreurs de téléversement
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                          'Erreur inconnue: ' . $error_code;
         
         $message = 'Erreur lors du téléversement: ' . $error_message;
-        logAccess($user_id, null, $filename, false, $message, 'upload');
+        logAccess($user_id, null, $filename, false, $message, 'upload', $access_token);
         http_response_code(400);
         echo json_encode(['error' => $message]);
         exit;
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     // Vérifier la taille
     if ($file['size'] > $max_size) {
         $message = 'Le fichier est trop volumineux (max 5MB).';
-        logAccess($user_id, null, $filename, false, $message, 'upload');
+        logAccess($user_id, null, $filename, false, $message, 'upload', $access_token);
         http_response_code(400);
         echo json_encode(['error' => $message]);
         exit;
@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                 number_format(filesize($target_path) / 1024, 2) . ' KB',
                 $target_path
             );
-            logAccess($user_id, $file_id, $filename, true, $message, 'upload_update');
+            logAccess($user_id, $file_id, $filename, true, $message, 'upload_update', $access_token);
         } else {
             // Créer un nouveau fichier
             $stmt = $pdo->prepare("INSERT INTO files (filename, path, size, created_at) VALUES (?, ?, ?, NOW())");
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                 number_format(filesize($target_path) / 1024, 2) . ' KB',
                 $target_path
             );
-            logAccess($user_id, $file_id, $filename, true, $message, 'upload_new');
+            logAccess($user_id, $file_id, $filename, true, $message, 'upload_new', $access_token);
         }
         
         $final_message = sprintf(
@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             number_format(filesize($target_path) / 1024, 2) . ' KB',
             $target_path
         );
-        logAccess($user_id, $file_id, $filename, true, $final_message, 'upload_complete');
+        logAccess($user_id, $file_id, $filename, true, $final_message, 'upload_complete', $access_token);
         
         echo json_encode([
             'success' => true,
@@ -172,13 +172,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         ]);
     } else {
         $message = 'Impossible d\'enregistrer le fichier.';
-        logAccess($user_id, null, $filename, false, $message, 'upload');
+        logAccess($user_id, null, $filename, false, $message, 'upload', $access_token);
         http_response_code(500);
         echo json_encode(['error' => $message]);
     }
 } else {
     $message = 'Méthode non autorisée ou fichier manquant.';
-    logAccess($user_id, null, null, false, $message, 'upload');
+    logAccess($user_id, null, null, false, $message, 'upload', $access_token);
     http_response_code(405);
     echo json_encode(['error' => $message]);
 }

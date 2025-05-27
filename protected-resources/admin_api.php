@@ -28,7 +28,7 @@ try {
     if (!$token_data) {
         header('HTTP/1.1 401 Unauthorized');
         echo json_encode(['error' => 'Token invalide ou expiré']);
-        logAccess(null, null, null, false, 'Token invalide ou expiré', 'auth_check');
+        logAccess(null, null, null, false, 'Token invalide ou expiré', 'auth_check', $access_token);
         exit();
     }
 
@@ -37,7 +37,7 @@ try {
     if (!in_array('admin', $scopes)) {
         header('HTTP/1.1 403 Forbidden');
         echo json_encode(['error' => 'Privilèges administrateur requis']);
-        logAccess($user_id, null, null, false, 'Privilèges admin requis', 'scope_check');
+        logAccess($user_id, null, null, false, 'Privilèges admin requis', 'scope_check', $access_token);
         exit();
     }
 
@@ -87,10 +87,10 @@ try {
                     $result = $stmt->execute([$file_id, $target_user_id, $can_read, $can_write]);
                 }
 
-                logAccess($user_id, $file_id, null, $result, $result ? 'Permission mise à jour' : 'Échec de la mise à jour', 'update_file_permission');
+                logAccess($user_id, $file_id, null, $result, $result ? 'Permission mise à jour' : 'Échec de la mise à jour', 'update_file_permission', $access_token);
                 echo json_encode(['success' => $result]);
             } else {
-                logAccess($user_id, null, null, false, 'Paramètres manquants', 'update_file_permission');
+                logAccess($user_id, null, null, false, 'Paramètres manquants', 'update_file_permission', $access_token);
                 echo json_encode(['success' => false, 'error' => 'Paramètres manquants']);
             }
             break;
@@ -102,17 +102,17 @@ try {
                 $available_scopes = $_GET['available_scopes'];
 
                 if (!in_array($role, ['user', 'admin'])) {
-                    logAccess($user_id, null, null, false, 'Rôle invalide', 'update_user_role');
+                    logAccess($user_id, null, null, false, 'Rôle invalide', 'update_user_role', $access_token);
                     echo json_encode(['success' => false, 'error' => 'Rôle invalide']);
                     break;
                 }
 
                 $stmt = $conn->prepare("UPDATE user_roles SET role = ?, available_scopes = ? WHERE user_id = ?");
                 $result = $stmt->execute([$role, $available_scopes, $target_user_id]);
-                logAccess($user_id, null, null, $result, $result ? 'Rôle mis à jour' : 'Échec de la mise à jour', 'update_user_role');
+                logAccess($user_id, null, null, $result, $result ? 'Rôle mis à jour' : 'Échec de la mise à jour', 'update_user_role', $access_token);
                 echo json_encode(['success' => $result]);
             } else {
-                logAccess($user_id, null, null, false, 'Paramètres manquants', 'update_user_role');
+                logAccess($user_id, null, null, false, 'Paramètres manquants', 'update_user_role', $access_token);
                 echo json_encode(['success' => false, 'error' => 'Paramètres manquants']);
             }
             break;
@@ -129,16 +129,16 @@ try {
                 $exists = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($exists) {
-                    logAccess($user_id, $file_id, null, false, 'Permission déjà existante', 'add_permission');
+                    logAccess($user_id, $file_id, null, false, 'Permission déjà existante', 'add_permission', $access_token);
                     echo json_encode(['success' => false, 'error' => 'Cette permission existe déjà']);
                 } else {
                     $stmt = $conn->prepare("INSERT INTO file_permissions (file_id, user_id, can_read, can_write) VALUES (?, ?, ?, ?)");
                     $result = $stmt->execute([$file_id, $target_user_id, $can_read, $can_write]);
-                    logAccess($user_id, $file_id, null, $result, $result ? 'Permission ajoutée' : 'Échec de l\'ajout', 'add_permission');
+                    logAccess($user_id, $file_id, null, $result, $result ? 'Permission ajoutée' : 'Échec de l\'ajout', 'add_permission', $access_token);
                     echo json_encode(['success' => $result]);
                 }
             } else {
-                logAccess($user_id, null, null, false, 'Paramètres manquants', 'add_permission');
+                logAccess($user_id, null, null, false, 'Paramètres manquants', 'add_permission', $access_token);
                 echo json_encode(['success' => false, 'error' => 'Paramètres manquants']);
             }
             break;
@@ -150,10 +150,10 @@ try {
 
                 $stmt = $conn->prepare("DELETE FROM file_permissions WHERE file_id = ? AND user_id = ?");
                 $result = $stmt->execute([$file_id, $target_user_id]);
-                logAccess($user_id, $file_id, null, $result, $result ? 'Permission supprimée' : 'Échec de suppression', 'delete_permission');
+                logAccess($user_id, $file_id, null, $result, $result ? 'Permission supprimée' : 'Échec de suppression', 'delete_permission', $access_token);
                 echo json_encode(['success' => $result]);
             } else {
-                logAccess($user_id, null, null, false, 'Paramètres manquants', 'delete_permission');
+                logAccess($user_id, null, null, false, 'Paramètres manquants', 'delete_permission', $access_token);
                 echo json_encode(['success' => false, 'error' => 'Paramètres manquants']);
             }
             break;
@@ -181,25 +181,25 @@ try {
                 $stmt = $conn->prepare("SELECT id, filename, path as file_path, size, created_at FROM files WHERE id = ?");
                 $stmt->execute([$file_id]);
                 $file = $stmt->fetch(PDO::FETCH_ASSOC);
-                logAccess($user_id, $file_id, $file['filename'] ?? null, $file ? true : false, $file ? 'Info fichier récupérée' : 'Fichier non trouvé', 'get_file_info');
+                logAccess($user_id, $file_id, $file['filename'] ?? null, $file ? true : false, $file ? 'Info fichier récupérée' : 'Fichier non trouvé', 'get_file_info', $access_token);
             } else {
-                logAccess($user_id, null, null, false, 'Paramètre file_id manquant', 'get_file_info');
+                logAccess($user_id, null, null, false, 'Paramètre file_id manquant', 'get_file_info', $access_token);
             }
             break;
 
         default:
-            logAccess($user_id, null, null, false, 'Action non reconnue', 'unknown_action');
+            logAccess($user_id, null, null, false, 'Action non reconnue', 'unknown_action', $access_token);
             echo json_encode(['success' => false, 'error' => 'Action non reconnue']);
             break;
     }
 
 } catch (PDOException $e) {
-    logAccess($user_id ?? null, null, null, false, 'Erreur PDO', 'exception');
+    logAccess($user_id ?? null, null, null, false, 'Erreur PDO', 'exception', $access_token);
     header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['error' => 'Erreur de base de données']);
     exit();
 } catch (Exception $e) {
-    logAccess($user_id ?? null, null, null, false, 'Erreur générale', 'exception');
+    logAccess($user_id ?? null, null, null, false, 'Erreur générale', 'exception', $access_token);
     header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['error' => 'Erreur interne du serveur']);
     exit();

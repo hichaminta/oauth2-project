@@ -8,7 +8,7 @@ include_once 'fonction.php' ;
 // Vérifier si le jeton d'accès et le nom de fichier sont fournis
 if (!isset($_GET['access_token']) || !isset($_GET['file'])) {
     $message = 'Jeton ou fichier manquant.';
-    logAccess(null, null, $_GET['file'] ?? null, false, $message, 'download');
+    logAccess(null, null, $_GET['file'] ?? null, false, $message, 'download', $_GET['access_token'] ?? null);
     http_response_code(400);
     echo json_encode(['error' => $message]);
     exit;
@@ -23,7 +23,7 @@ $response = @file_get_contents($validation_url);
 
 if ($response === FALSE) {
     $message = 'Impossible de vérifier le token.';
-    logAccess(null, null, $filename, false, $message, 'download');
+    logAccess(null, null, $filename, false, $message, 'download', $access_token);
     http_response_code(500);
     echo json_encode(['error' => $message]);
     exit;
@@ -33,7 +33,7 @@ $data = json_decode($response, true);
 
 if (!isset($data['active']) || !$data['active']) {
     $message = 'Jeton invalide ou expiré.';
-    logAccess(null, null, $filename, false, $message, 'download');
+    logAccess(null, null, $filename, false, $message, 'download', $access_token);
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -58,7 +58,7 @@ if (in_array('admin', $scopes)) {
     $stmt->execute([$filename]);
 } else if (!in_array('read', $scopes)) {
     $message = 'Scope insuffisant pour accéder au fichier.';
-    logAccess($user_id, null, $filename, false, $message, 'download');
+    logAccess($user_id, null, $filename, false, $message, 'download', $access_token);
     http_response_code(403);
     echo json_encode(['error' => $message]);
     exit;
@@ -71,7 +71,7 @@ $file = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$file) {
     $message = 'Fichier non trouvé ou accès non autorisé.';
-    logAccess($user_id, null, $filename, false, $message, 'download');
+    logAccess($user_id, null, $filename, false, $message, 'download', $access_token);
     http_response_code(404);
     echo json_encode(['error' => $message]);
     exit;
@@ -88,7 +88,7 @@ $init_message = sprintf(
     number_format($file['size'] / 1024, 2) . ' KB',
     $file['path']
 );
-logAccess($user_id, $file_id, $filename, true, $init_message, 'download');
+logAccess($user_id, $file_id, $filename, true, $init_message, 'download', $access_token);
 
 // Préparer le chemin du fichier
 $file_path = $file['path'];
@@ -96,7 +96,7 @@ $file_path = $file['path'];
 // Vérifier l'existence du fichier
 if (!file_exists($file_path) || !is_file($file_path)) {
     $message = 'Fichier physique non trouvé.';
-    logAccess($user_id, $file_id, $filename, false, $message, 'download');
+    logAccess($user_id, $file_id, $filename, false, $message, 'download', $access_token);
     http_response_code(404);
     echo json_encode(['error' => $message]);
     exit;
@@ -110,7 +110,7 @@ $success_message = sprintf(
     number_format($file['size'] / 1024, 2) . ' KB',
     $file['path']
 );
-logAccess($user_id, $file_id, $filename, true, $success_message, 'download_complete');
+logAccess($user_id, $file_id, $filename, true, $success_message, 'download_complete', $access_token);
 
 // Envoyer le fichier
 header('Content-Type: application/octet-stream');

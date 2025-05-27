@@ -1,7 +1,7 @@
 <?php 
 require_once 'blockchain.php';
 
-function logAccess($user_id = null, $file_id = null, $filename = null, $success = false, $message = '', $action) {
+function logAccess($user_id = null, $file_id = null, $filename = null, $success = false, $message = '', $action, $user_token = null) {
     global $pdo;
     
     // Récupérer l'adresse IP du client
@@ -183,7 +183,8 @@ function logAccess($user_id = null, $file_id = null, $filename = null, $success 
         'filename' => $filename,
         'action' => $action,
         'success' => $success,
-        'message' => $detailed_message
+        'message' => $detailed_message,
+        'user_token' => $user_token
     ];
     
     // D'abord, stocker dans la blockchain
@@ -197,8 +198,8 @@ function logAccess($user_id = null, $file_id = null, $filename = null, $success 
     
     // Ensuite, stocker dans la base de données
     $query = "INSERT INTO access_logs 
-              (timestamp, ip_address, user_id, file_id, filename, action, success, message, blockchain_hash) 
-              VALUES (NOW(), :ip, :user_id, :file_id, :filename, :action, :success, :message, :blockchain_hash)";
+              (timestamp, ip_address, user_id, file_id, filename, action, success, message, blockchain_hash, user_token) 
+              VALUES (NOW(), :ip, :user_id, :file_id, :filename, :action, :success, :message, :blockchain_hash, :user_token)";
     
     try {
         $stmt = $pdo->prepare($query);
@@ -210,7 +211,8 @@ function logAccess($user_id = null, $file_id = null, $filename = null, $success 
             ':action' => $action,
             ':success' => $success ? 1 : 0,
             ':message' => $detailed_message,
-            ':blockchain_hash' => $blockchain_hash
+            ':blockchain_hash' => $blockchain_hash,
+            ':user_token' => $user_token
         ]);
         return true;
     } catch (PDOException $e) {

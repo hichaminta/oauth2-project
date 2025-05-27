@@ -34,7 +34,7 @@ try {
     $conn = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $stmt = $conn->prepare("SELECT `id`, `timestamp`, `ip_address`, `user_id`, `file_id`, `filename`, `action`, `success`, `message`, `blockchain_hash`
+    $stmt = $conn->prepare("SELECT `id`, `timestamp`, `ip_address`, `user_id`, `file_id`, `filename`, `action`, `success`, `message`, `blockchain_hash`, `user_token`
                             FROM `access_logs`");
     $stmt->execute();
 

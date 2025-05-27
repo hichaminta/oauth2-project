@@ -150,6 +150,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                             <th>Fichier ID</th>
                             <th>Nom de fichier</th>
                             <th>Action</th>
+                            <th>Token</th>
                             <th>Blockchain</th>
                             <th>Succès</th>
                             <th>Message</th>
@@ -195,6 +196,15 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                 </a>
             ` : '<span class="text-muted">-</span>';
 
+            const tokenDisplay = log.user_token ? `
+                <div class="token-display" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${log.user_token}">
+                    <i class="fas fa-key"></i> ${log.user_token.substring(0, 10)}...
+                    <a href="blochaine_adm_token.php?token=${log.user_token}" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.8rem; margin-left: 0.5rem;">
+                        <i class="fas fa-search"></i> Voir
+                    </a>
+                </div>
+            ` : '<span class="text-muted">-</span>';
+
             return `
                 <tr>
                     <td>${log.id}</td>
@@ -204,6 +214,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                     <td>${log.file_id}</td>
                     <td><i class="fas fa-file"></i> ${log.filename}</td>
                     <td><span class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">${log.action}</span></td>
+                    <td>${tokenDisplay}</td>
                     <td>${blockchainLink}</td>
                     <td>
                         ${log.success 
@@ -229,6 +240,7 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                 const logMessage = (log.message || '').toLowerCase();
                 const logFilename = (log.filename || '').toLowerCase();
                 const logUserId = (log.user_id || '').toString().toLowerCase();
+                const logToken = (log.user_token || '').toLowerCase();
 
                 const matchesAction = !action || logAction === action;
                 const matchesStatus = !status || 
@@ -238,7 +250,8 @@ if (!isset($data['user']['scopes']) || !in_array('admin', $data['user']['scopes'
                 const matchesSearch = !search || 
                     logMessage.includes(search) || 
                     logFilename.includes(search) || 
-                    logUserId.includes(search);
+                    logUserId.includes(search) ||
+                    logToken.includes(search);
 
                 return matchesAction && matchesStatus && matchesDate && matchesSearch;
             });

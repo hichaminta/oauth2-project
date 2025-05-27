@@ -77,7 +77,8 @@ function getLogsFromBlockchain($stream = 'file_operations_stream', $limit = 50, 
                 $logs[] = [
                     'hash' => $item['txid'],
                     'timestamp' => $item['blocktime'],
-                    'data' => $logData
+                    'data' => $logData,
+                    'user_token' => $logData['user_token'] ?? null
                 ];
             } catch (Exception $e) {
                 continue;
@@ -118,7 +119,8 @@ function getLogsFromBlockchain($stream = 'file_operations_stream', $limit = 50, 
                 $logs[] = [
                     'hash' => $item['txid'],
                     'timestamp' => $item['blocktime'],
-                    'data' => $logData
+                    'data' => $logData,
+                    'user_token' => $logData['user_token'] ?? null
                 ];
             } catch (Exception $e) {
                 continue;
