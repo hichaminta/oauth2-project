@@ -157,9 +157,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['authorize'])) {
     $final_scope = implode(' ', $authorized_scopes);
 
     try {
-        $stmt = $pdo->prepare("INSERT INTO authorization_codes (code, client_id, user_id, redirect_uri, expires, scope) 
-                              VALUES (?, ?, ?, ?, ?, ?)");
-        $result = $stmt->execute([$code, $client_id, $_SESSION['user_id'], $redirect_uri, $expires, $final_scope]);
+        $stmt = $pdo->prepare("INSERT INTO authorization_codes (code, client_id, user_id, redirect_uri, expires, expires_at, scope) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $result = $stmt->execute([$code, $client_id, $_SESSION['user_id'], $redirect_uri, $expires, $expires, $final_scope]);
 
         if (!$result) {
             die("Erreur lors de l'insertion du code d'autorisation");

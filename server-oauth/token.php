@@ -36,7 +36,7 @@ if (!$client) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM authorization_codes WHERE code = ? AND client_id = ? AND redirect_uri = ? AND expires > NOW()");
+$stmt = $pdo->prepare("SELECT * FROM authorization_codes WHERE code = ? AND client_id = ? AND redirect_uri = ? AND (expires > NOW() OR expires_at > NOW())");
 $stmt->execute([$code, $client_id, $redirect_uri]);
 $auth_code = $stmt->fetch();
 
@@ -52,11 +52,11 @@ $stmt->execute([$code]); // Using the original code, not the hardcoded "11"
 
 // Create tokens with short expiration
 $access_token = bin2hex(random_bytes(32));
-$expires_in = 60; // 1 minute
+$expires_in = 1800; // 30 minutes
 $access_token_expires = date('Y-m-d H:i:s', time() + $expires_in);
 
 $refresh_token = bin2hex(random_bytes(40));
-$refresh_token_expires = date('Y-m-d H:i:s', time() + (5 * 60)); // 5 minutes
+$refresh_token_expires = date('Y-m-d H:i:s', time() + (14400)); // 4 heures pour le refresh token
 
 // Store the access token
 $stmt = $pdo->prepare("INSERT INTO access_tokens (access_token, client_id, user_id, expires, scope) VALUES (?, ?, ?, ?, ?)");

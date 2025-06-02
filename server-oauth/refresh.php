@@ -33,11 +33,11 @@ if (!$client) {
 }
 
 //  Vérifier le refresh_token
-$stmt = $pdo->prepare("SELECT * FROM refresh_tokens WHERE refresh_token = ? AND client_id = ?");
+$stmt = $pdo->prepare("SELECT * FROM refresh_tokens WHERE refresh_token = ? AND client_id = ? AND expires > NOW()");
 $stmt->execute([$refresh_token, $client_id]);
 $token_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$token_data || strtotime($token_data['expires']) < time()) {
+if (!$token_data) {
     http_response_code(401);
     echo json_encode(['error' => 'Refresh token invalide ou expiré']);
     exit;
@@ -45,7 +45,7 @@ if (!$token_data || strtotime($token_data['expires']) < time()) {
 
 //  Générer un nouveau access_token
 $new_access_token = bin2hex(random_bytes(32));
-$expires_in = 3600;
+$expires_in = 1800; // 30 minutes exactement
 $expires_at = date('Y-m-d H:i:s', time() + $expires_in);
 
 //  Enregistrer le nouveau token
