@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json');
 
-function getLogsFromBlockchain($stream = 'file_operations_stream', $limit = 50, $offset = 0) {
+function getLogsFromBlockchain($stream = 'file_operations_stream_log', $limit = 200, $offset = 0) {
     $rpc_url = "http://multichainrpc:9gEwnCkgAXV5v3PPFgEMPyK7LyEyDbZovQq6qScvRnPA@localhost:5001";
     
     // Now get the stream items
@@ -149,7 +149,7 @@ function getLogsFromBlockchain($stream = 'file_operations_stream', $limit = 50, 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
     $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
-    $stream = isset($_GET['stream']) ? $_GET['stream'] : 'file_operations_stream';
+    $stream = isset($_GET['stream']) ? $_GET['stream'] : 'file_operations_stream_log';
     
     $logs = getLogsFromBlockchain($stream, $limit, $offset);
     echo json_encode($logs, JSON_PRETTY_PRINT);

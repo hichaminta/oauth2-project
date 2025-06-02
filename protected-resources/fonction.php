@@ -188,7 +188,7 @@ function logAccess($user_id = null, $file_id = null, $filename = null, $success 
     ];
     
     // D'abord, stocker dans la blockchain
-    $blockchain_hash = publishToBlockchain('file_operations_stream', $log_data);
+    $blockchain_hash = publishToBlockchain('file_operations_stream_log', $log_data);
     
     // Si la blockchain a échoué, on ne continue pas avec la base de données
     if ($blockchain_hash === false) {
