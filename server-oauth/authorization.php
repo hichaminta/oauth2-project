@@ -320,7 +320,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="container">
         <div class="logo">
             <i class="fas fa-file-search"></i>
-            QuickView
+            SecureAuth
         </div>
         
         <div class="user-info">
@@ -539,7 +539,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="container">
         <div class="logo">
             <i class="fas fa-file-search"></i>
-            QuickView
+            SecureAuth
         </div>
         
         <h2>Créer un compte</h2>
@@ -764,7 +764,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="container">
         <div class="logo">
             <i class="fas fa-file-search"></i>
-            QuickView
+            SecureAuth
         </div>
         
         <h2>Connexion requise</h2>

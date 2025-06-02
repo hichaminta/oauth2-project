@@ -1,9 +1,16 @@
 <?php
 session_start();
 include_once 'variable.php';
+
 // Si l'utilisateur est déjà authentifié, rediriger vers view.php
 if (isset($_SESSION['access_token'])) {
     header("Location: view.php");
+    exit;
+}
+
+// Si l'utilisateur vient directement sur index.php, le rediriger vers services.php
+if (!isset($_GET['login'])) {
+    header("Location: services.php");
     exit;
 }
 

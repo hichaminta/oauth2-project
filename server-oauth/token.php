@@ -53,18 +53,23 @@ $stmt->execute([$code]); // Using the original code, not the hardcoded "11"
 // Create tokens with short expiration
 $access_token = bin2hex(random_bytes(32));
 $expires_in = 1800; // 30 minutes
-$access_token_expires = date('Y-m-d H:i:s', time() + $expires_in);
+$current_time = new DateTime();
+$expiration_time = clone $current_time;
+$expiration_time->modify('+30 minutes');
+$access_token_expires = $expiration_time->format('Y-m-d H:i:s');
 
 $refresh_token = bin2hex(random_bytes(40));
-$refresh_token_expires = date('Y-m-d H:i:s', time() + (14400)); // 4 heures pour le refresh token
+$refresh_expiration = clone $current_time;
+$refresh_expiration->modify('+4 hours');
+$refresh_token_expires = $refresh_expiration->format('Y-m-d H:i:s');
 
 // Store the access token
-$stmt = $pdo->prepare("INSERT INTO access_tokens (access_token, client_id, user_id, expires, scope) VALUES (?, ?, ?, ?, ?)");
-$stmt->execute([$access_token, $client_id, $auth_code['user_id'], $access_token_expires, $auth_code['scope']]);
+$stmt = $pdo->prepare("INSERT INTO access_tokens (access_token, client_id, user_id, expires, scope) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE), ?)");
+$stmt->execute([$access_token, $client_id, $auth_code['user_id'], $auth_code['scope']]);
 
 // Store the refresh token
-$stmt = $pdo->prepare("INSERT INTO refresh_tokens (refresh_token, client_id, user_id, expires, scope) VALUES (?, ?, ?, ?, ?)");
-$stmt->execute([$refresh_token, $client_id, $auth_code['user_id'], $refresh_token_expires, $auth_code['scope']]);
+$stmt = $pdo->prepare("INSERT INTO refresh_tokens (refresh_token, client_id, user_id, expires, scope) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 4 HOUR), ?)");
+$stmt->execute([$refresh_token, $client_id, $auth_code['user_id'], $auth_code['scope']]);
 
 // Store token in blockchain
 $token_data = [
